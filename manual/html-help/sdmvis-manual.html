@@ -1,0 +1,551 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"  
+  "http://www.w3.org/TR/html4/loose.dtd">  
+<html > 
+<head><title>SDMVIS Manual</title> 
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
+<meta name="generator" content="TeX4ht (http://www.cse.ohio-state.edu/~gurari/TeX4ht/)"> 
+<meta name="originator" content="TeX4ht (http://www.cse.ohio-state.edu/~gurari/TeX4ht/)"> 
+<!-- html,imgdir:img/ --> 
+<meta name="src" content="sdmvis-manual.tex"> 
+<meta name="date" content="2011-10-07 13:54:00"> 
+<link rel="stylesheet" type="text/css" href="sdmvis-manual.css"> 
+</head><body 
+>
+<div class="maketitle">
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+
+<h2 class="titleHead">SDMVIS Manual</h2>
+ <div class="author" ><span 
+class="ecss-1440">Max Hermann</span><span class="thank-mark"><a 
+href="#tk-1"><span 
+class="cmsy-10x-x-144">*</span></a></span></div><br />
+<div class="date" ><span 
+class="ecss-1440">Version 0.3 (2011-10-05)</span></div>
+<div class="thanks" ><br /><a 
+ id="tk-1"></a><span class="thank-mark"><span 
+class="cmsy-10x-x-109">*</span></span><a 
+href="mailto:hermann@cs.uni-bonn.de" ><span 
+class="ectt-1095">hermann@cs.uni-bonn.de</span></a></div></div><div 
+class="abstract" 
+>
+     <!--l. 68--><p class="indent" >  SDMVIS  is  a  visual  analysis  software  to  explore  statistical  deformation
+     models (SDM) of volumetric organisms. Interactive exploration is facilitated by
+     integrating two kinds of expert knowledge: taxonomical or other classifications
+     of  the  datasets  as  well  as  knowledge  about  relevant  structures  and  parts  of
+     the shape. Given a classification into two groups the corresponding dominant
+     shape differences between the groups (a so-called trait) can be computed and
+     visualized in a dynamic fashion. Based on a selected region of interest (ROI) a
+     new weighted SDM can be derived whose principal modes of shape variability are
+     again accessible in a dynamic visualization.
+</div>
+<h3 class="likesectionHead"><a 
+ id="x1-1000"></a>Contents</h3>
+<div class="tableofcontents">
+<span class="sectionToc" >1 <a 
+href="#x1-20001" id="QQ2-1-2">Overview</a></span>
+<br /><span class="sectionToc" >2 <a 
+href="#x1-30002" id="QQ2-1-5">Data Management</a></span>
+<br /><span class="sectionToc" >3 <a 
+href="#x1-40003" id="QQ2-1-7">Visualizations</a></span>
+<br />&#x00A0;<span class="subsectionToc" >3.1 <a 
+href="#x1-50003.1" id="QQ2-1-8">PCA Scatterplots and Diagrams</a></span>
+<br />&#x00A0;<span class="subsectionToc" >3.2 <a 
+href="#x1-60003.2" id="QQ2-1-9">Dynamic Visualization of Deformation Fields</a></span>
+<br />&#x00A0;<span class="subsectionToc" >3.3 <a 
+href="#x1-70003.3" id="QQ2-1-10">Static Glyph Visualization of Deformation Fields</a></span>
+<br />&#x00A0;<span class="subsectionToc" >3.4 <a 
+href="#x1-80003.4" id="QQ2-1-11">Comparative Visualization to assess Registration Quality</a></span>
+<br />&#x00A0;<span class="subsectionToc" >3.5 <a 
+href="#x1-90003.5" id="QQ2-1-12">Statistical Deformation Model Quality (not available yet)</a></span>
+<br /><span class="sectionToc" >4 <a 
+href="#x1-100004" id="QQ2-1-13">Analysis Tasks</a></span>
+<br />&#x00A0;<span class="subsectionToc" >4.1 <a 
+href="#x1-110004.1" id="QQ2-1-14">PCA Model</a></span>
+<br />&#x00A0;<span class="subsectionToc" >4.2 <a 
+href="#x1-120004.2" id="QQ2-1-15">Classification Trait Vector</a></span>
+                                                                                
+                                                                                
+<br />&#x00A0;<span class="subsectionToc" >4.3 <a 
+href="#x1-130004.3" id="QQ2-1-16">Refine shape model according to Region of Interest</a></span>
+<br />&#x00A0;<span class="subsectionToc" >4.4 <a 
+href="#x1-140004.4" id="QQ2-1-17">Subset Selection (not available yet)</a></span>
+<br />&#x00A0;<span class="subsectionToc" >4.5 <a 
+href="#x1-150004.5" id="QQ2-1-18">Trait Quantification (not available yet)</a></span>
+</div>
+                                                                                
+                                                                                
+<!--l. 84--><p class="noindent" >
+<h3 class="sectionHead"><span class="titlemark">1 </span> <a 
+ id="x1-20001"></a>Overview</h3>
+<!--l. 87--><p class="noindent" ><hr class="figure"><div class="figure" 
+>
+                                                                                
+                                                                                
+<a 
+ id="x1-20011"></a>
+                                                                                
+                                                                                
+<!--l. 88--><p class="noindent" > <img width="800px"
+src="images/pipeline.png" alt="PIC"  
+>
+<br /> <div class="caption" 
+><span class="id">Figure&#x00A0;1: </span><span  
+class="content">Processing pipeline from acquisition to shape model. SDMVIS is a tool to explore
+a given shape model and derive new (sub-)models from it. It also provides visualizations to
+assess registration quality.</span></div><!--tex4ht:label?: x1-20011 -->
+                                                                                
+                                                                                
+<!--l. 96--><p class="noindent" ></div><hr class="endfigure">
+<!--l. 100--><p class="noindent" ><hr class="figure"><div class="figure" 
+>
+                                                                                
+                                                                                
+<a 
+ id="x1-20022"></a>
+                                                                                
+                                                                                
+<!--l. 101--><p class="noindent" > <img width="600px"
+src="screenshots/labels.png" alt="PIC"  
+>
+<br /> <div class="caption" 
+><span class="id">Figure&#x00A0;2: </span><span  
+class="content">SDMVIS user inteface overview: <span 
+class="ecsx-1095">(A) </span>Tab bar with available visual analysis tasks
+which can be activated by clicking on the corresponding tab entry. <span 
+class="ecsx-1095">(B) </span>Visualization of the
+active task. <span 
+class="ecsx-1095">(C) </span>Control widget with options and controls for the active task.</span></div><!--tex4ht:label?: x1-20022 -->
+                                                                                
+                                                                                
+<!--l. 110--><p class="noindent" ></div><hr class="endfigure">
+<!--l. 113--><p class="noindent" >SDMVIS assumes as input an already registered subset of your data, see Figure&#x00A0;<a 
+href="#x1-20001">1<!--tex4ht:ref: fig:pipeline --></a>. For now
+an initial shape model has also to be provided (which will hopefully soon be obsolete).
+The user interface is designed task-oriented with respect to the following visual analysis
+tasks:
+     <ul class="itemize1">
+     <li class="itemize">Investigate PCA model <span 
+class="ectt-1095">[PCA Model]</span>
+     </li>
+     <li class="itemize">Investigate and/or compute trait model <span 
+class="ectt-1095">[Trait Model]</span>
+     </li>
+     <li class="itemize">Spefiy a region of interest and compute a new PCA model <span 
+class="ectt-1095">[Specify ROI]</span>
+     </li>
+     <li class="itemize">Assess  shape  variability  of  an  eigenwarp  or  trait  in  a  static  visualization  <span 
+class="ectt-1095">[Glyph</span>
+     <span 
+class="ectt-1095">visualization]</span>
+     </li>
+     <li class="itemize">Assess registration quality visually <span 
+class="ectt-1095">[Registration visualization]</span>
+     </li>
+     <li class="itemize">Prepare results in a table e.g. for exporting to Excel <span 
+class="ectt-1095">[Dataset]</span></li></ul>
+<!--l. 129--><p class="noindent" >In braces the shorthand term for the specific task respectively mode in SDMVIS is given. Only one
+mode can be active at a given time. The user interface provides a tab-bar to switch between
+the different modes. Each mode has its own controls and visualization as indicated in
+Figure&#x00A0;<a 
+href="#x1-20001">1<!--tex4ht:ref: fig:gui --></a>.
+<h3 class="sectionHead"><span class="titlemark">2 </span> <a 
+ id="x1-30002"></a>Data Management</h3>
+<!--l. 138--><p class="noindent" >The data management concept is not finished yet. We currently rely on configuration files which
+represent a specific analysis session in SDMVIS, see also Table&#x00A0;<a 
+href="#x1-30002">2<!--tex4ht:ref: tab:analysis_items --></a>. To discern different analyses an
+identifying keyword has to be specified by the user for each analysis.
+<!--l. 144--><p class="noindent" >The current data management approach can be summarized as follows:
+     <ul class="itemize1">
+     <li class="itemize">Data files follow a specific naming convention.
+     </li>
+     <li class="itemize">Relevant files of a <span 
+class="ecsi-1095">specific analysis </span>are stored in a single directory.
+     </li>
+     <li class="itemize">A single <span 
+class="ecsi-1095">configuration file </span>holds the needed filenames and additional parameters of a
+     specific analysis (see Table&#x00A0;<a 
+href="#x1-30002">2<!--tex4ht:ref: tab:analysis_items --></a>).
+     </li>
+     <li class="itemize">SDMVIS <span 
+class="ecsi-1095">automatically  </span>creates configuration files and the needed directory structure
+     for trait and/or ROI analyses.
+     </li>
+     <li class="itemize">For now, each analysis is identified by a user specified line of text or a <span 
+class="ecsi-1095">keyword</span>.</li></ul>
+                                                                                
+                                                                                
+<!--l. 156--><p class="noindent" >By performing a ROI selection a new SDM is derived for which a new analysis with SDMVIS has to
+be performed. Thus SDMVIS automatically creates a new configuration file which is loaded
+immediately after creation. All relevant data files are stored in a sub-directory of the original analysis
+configuration file. The new sub-directory is named according to the new keyword specified for the
+ROI analysis.
+<!--l. 163--><p class="noindent" >Computing a new trait does not change the current SDM and the current configuration file is simply
+updated. The newly created trait files are stored in a sub-directory named according to the keyword
+of the current analysis.
+<!--l. 168--><p class="noindent" >The datasets and mean estimate as well as all eigen- and traitwarps are stored as Metaimage MHD
+files. These can be loaded and displayed by most Visualization Software Packages like for example
+ParaView.
+<div class="table">
+                                                                                
+                                                                                
+<!--l. 174--><p class="noindent" ><a 
+ id="x1-30011"></a><hr class="float"><div class="float" 
+>
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+<!--tex4ht:inline--><div class="tabular"> <table id="TBL-2" class="tabular" 
+cellspacing="0" cellpadding="0" rules="groups" 
+><colgroup id="TBL-2-1g"><col 
+id="TBL-2-1"></colgroup><colgroup id="TBL-2-2g"><col 
+id="TBL-2-2"></colgroup><colgroup id="TBL-2-3g"><col 
+id="TBL-2-3"></colgroup><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-1-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-1-1"  
+class="td11"> <span 
+class="ecsi-1095">Item                    </span></td><td  style="white-space:wrap; text-align:left;" id="TBL-2-1-2"  
+class="td11"> <!--l. 176--><p class="noindent" ><span 
+class="ecsi-1095">Description</span>                                             </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-1-3"  
+class="td11"> <!--l. 176--><p class="noindent" ><span 
+class="ecsi-1095">Storage</span>                           </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-2-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-2-1"  
+class="td11"> list of names           </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-2-2"  
+class="td11"> <!--l. 179--><p class="noindent" >names
+  of
+  the
+  analysed
+  datasets                                                 </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-2-3"  
+class="td11"> <!--l. 179--><p class="noindent" >in
+  configuration
+  file                                 </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-3-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-3-1"  
+class="td11"> mean estimate         </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-3-2"  
+class="td11"> <!--l. 181--><p class="noindent" >estimate
+  of
+  a
+  mean
+  shape
+  or
+  a
+  reference
+  dataset                                                  </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-3-3"  
+class="td11"> <!--l. 181--><p class="noindent" >.MHD
+  volume                           </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-4-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-4-1"  
+class="td11"> warpfields               </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-4-2"  
+class="td11"> <!--l. 183--><p class="noindent" >warpfields
+  describe
+  the
+  deformation
+  of
+  the
+  mean
+  to
+  a
+  specific
+  dataset                                                  </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-4-3"  
+class="td11"> <!--l. 183--><p class="noindent" >single
+  huge
+  .MAT
+  matrix                            </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-5-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-5-1"  
+class="td11"> eigenwarps             </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-5-2"  
+class="td11"> <!--l. 185--><p class="noindent" >high-dimensional
+  PCA
+  eigenvectors                                            </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-5-3"  
+class="td11"> <!--l. 185--><p class="noindent" >single
+  huge
+  .MAT
+  matrix                            </td>
+
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-6-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-6-1"  
+class="td11"> PCA model             </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-6-2"  
+class="td11"> <!--l. 187--><p class="noindent" >low-dimensional
+  scatter
+  matrix,
+  eigenvectors,
+  eigenvalues                                             </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-6-3"  
+class="td11"> <!--l. 187--><p class="noindent" >in
+  configuration
+  file                                 </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-7-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-7-1"  
+class="td11"> traits and traitwarps  </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-7-2"  
+class="td11"> <!--l. 189--><p class="noindent" >a
+  single
+  trait
+  is
+  described
+  in
+  an
+  custom
+  configuration
+  file                                                        </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-7-3"  
+class="td11"> <!--l. 189--><p class="noindent" >custom
+  .TWF
+  file                                 </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-8-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-8-1"  
+class="td11">
+</td></tr><tr 
+class="cline"><td></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-9-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-9-1"  
+class="td11"> <span 
+class="ecsi-1095">(optional)               </span></td><td  style="white-space:wrap; text-align:left;" id="TBL-2-9-2"  
+class="td11"> <!--l. 191--><p class="noindent" >low-dimensional
+  trait
+  vector                                                    </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-9-3"  
+class="td11"> <!--l. 191--><p class="noindent" >small
+  .MAT
+  vector                             </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-10-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-10-1"  
+class="td11">
+</td></tr><tr 
+class="cline"><td></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-11-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-11-1"  
+class="td11">                  </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-11-2"  
+class="td11"> <!--l. 193--><p class="noindent" >high-dimensional
+  traitwarp                                                </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-11-3"  
+class="td11"> <!--l. 193--><p class="noindent" >.MHD
+  volume                           </td>
+
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-12-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-12-1"  
+class="td11"> ROI <span 
+class="ecsi-1095">(optional)         </span></td><td  style="white-space:wrap; text-align:left;" id="TBL-2-12-2"  
+class="td11"> <!--l. 195--><p class="noindent" >user
+  selected
+  region
+  of
+  interest
+  (new
+  specific
+  analysis)                                                 </td><td  style="white-space:wrap; text-align:left;" id="TBL-2-12-3"  
+class="td11"> <!--l. 195--><p class="noindent" >in
+  configuration
+  file                                 </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-2-13-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-13-1"  
+class="td11">                  </td></tr></table>                                                          
+                                                                                
+</div>
+<br /> <div class="caption" 
+><span class="id">Table&#x00A0;1: </span><span  
+class="content">Items of a specific analysis</span></div><!--tex4ht:label?: x1-30011 -->
+                                                                                
+                                                                                
+</div><hr class="endfloat" />
+</div>
+<!--l. 202--><p class="noindent" >
+                                                                                
+                                                                                
+<h3 class="sectionHead"><span class="titlemark">3 </span> <a 
+ id="x1-40003"></a>Visualizations</h3>
+<!--l. 208--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">3.1 </span> <a 
+ id="x1-50003.1"></a>PCA Scatterplots and Diagrams</h4>
+<!--l. 210--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 210--><p class="noindent" >
+
+<!--l. 211--><p class="noindent" ><img height="300px"
+src="screenshots/scatterplotmatrix.png" alt="PIC"  
+>
+</div>
+     <ul class="itemize1">
+     <li class="itemize">groups are colored blue and red (if classification is available)
+     </li>
+     <li class="itemize">trait separating hyperplane is shown in green (if available)
+     </li>
+     <li class="itemize">in <span 
+class="ectt-1095">[Trait Model] </span>view:
+          <ul class="itemize2">
+          <li class="itemize">single items may be selected by clicking on them
+          </li>
+          <li class="itemize">right click in diagram area opens context menu with further options
+          </li>
+          <li class="itemize">&#8220;Free Item&#8221; mode provides dynamic visualization</li></ul>
+     </li></ul>
+<!--l. 225--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">3.2 </span> <a 
+ id="x1-60003.2"></a>Dynamic Visualization of Deformation Fields</h4>
+<!--l. 227--><p class="noindent" ><span 
+class="ectt-1095">[PCA Model] [Trait Model]</span>
+<!--l. 229--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 229--><p class="noindent" >
+
+<!--l. 230--><p class="noindent" ><img height="250px"
+src="screenshots/sdmvis_traitmodel.png" alt="PIC"  
+>
+</div>
+                                                                                
+                                                                                
+     <ul class="itemize1">
+     <li class="itemize">warp coefficient(s) can be adjusted by manipulating the bar plot to the lower right of
+     the control widget
+     </li>
+     <li class="itemize">in <span 
+class="ectt-1095">[PCA Model] </span>one can alternatively use the &#8220;Free Item&#8221; mode of the PCA plot (right
+     click on the PCA diagram to activate the context menu from which the Free Item mode
+     can be set)
+     </li>
+     <li class="itemize">in <span 
+class="ectt-1095">[Trait Model] </span>the warp scaling parameter has to be adjusted manually</li></ul>
+<!--l. 242--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">3.3 </span> <a 
+ id="x1-70003.3"></a>Static Glyph Visualization of Deformation Fields</h4>
+<!--l. 244--><p class="noindent" ><span 
+class="ectt-1095">[Glyph visualization]</span>
+<!--l. 246--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 246--><p class="noindent" >
+
+<!--l. 247--><p class="noindent" ><img height="250px"
+src="screenshots/sdmvis_glyphs.png" alt="PIC"  
+>
+</div>
+     <ul class="itemize1">
+     <li class="itemize">first, select in the control widget which trait or eigenwarp you want to be visualized
+     </li>
+     <li class="itemize">color coding of the surface indicates growth/shrinking of the shape
+     </li>
+     <li class="itemize">glyph vectors represent tangential shift on the shape</li></ul>
+<!--l. 256--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">3.4 </span> <a 
+ id="x1-80003.4"></a>Comparative Visualization to assess Registration Quality</h4>
+<!--l. 258--><p class="noindent" ><span 
+class="ectt-1095">[Registration visualization]</span>
+<!--l. 260--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 260--><p class="noindent" >
+
+<!--l. 261--><p class="noindent" ><img height="250px" 
+src="screenshots/sdmvis_regquality.png" alt="PIC"  
+>
+</div>
+                                                                                
+                                                                                
+     <ul class="itemize1">
+     <li class="itemize">needs aligned and registered datasets in a specific directory which has to be selected
+     via &#8220;Set Path&#8221; in the control widget
+     </li>
+     <li class="itemize">can show the aligned original dataset in comparison to the deformed mean estimate
+     (which should match the original as closely as possible for a faithfull investigation)
+     </li>
+     <li class="itemize">supports contour rendering of the surface as well as volume rendering (in rainbow colors)
+     </li>
+     <li class="itemize">can compute and visualize the difference between the aligned and the registered volume
+     (as  shown  on  the  screenshot);  this  maybe  a  usefull  visualization  to  estimate  the
+     registration quality of specific areas</li></ul>
+<!--l. 276--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">3.5 </span> <a 
+ id="x1-90003.5"></a>Statistical Deformation Model Quality (not available yet)</h4>
+<!--l. 278--><p class="noindent" >
+                                                                                
+                                                                                
+<h3 class="sectionHead"><span class="titlemark">4 </span> <a 
+ id="x1-100004"></a>Analysis Tasks</h3>
+<!--l. 284--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">4.1 </span> <a 
+ id="x1-110004.1"></a>PCA Model</h4>
+<!--l. 286--><p class="noindent" ><span 
+class="ectt-1095">[PCA Model]</span>
+<!--l. 288--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 288--><p class="noindent" >
+
+<!--l. 289--><p class="noindent" ><img height="250px" 
+src="screenshots/sdmvis_pcamodel.png" alt="PIC"  
+>
+</div>
+<!--l. 293--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">4.2 </span> <a 
+ id="x1-120004.2"></a>Classification Trait Vector</h4>
+<!--l. 295--><p class="noindent" ><span 
+class="ectt-1095">[Trait Model]</span>
+<!--l. 297--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 297--><p class="noindent" >
+
+<!--l. 298--><p class="noindent" ><img height="350px" 
+src="screenshots/trait-ctrl-1.png" alt="PIC"  
+><img height="350px"
+src="screenshots/trait-ctrl-2.png" alt="PIC"  
+><img height="350px"
+src="screenshots/trait-ctrl-3.png" alt="PIC"  
+>
+</div>
+     <ul class="itemize1">
+     <li class="itemize">traits according to a specific grouping (also called labelling or classification) can be
+     loaded, created or deleted
+     </li>
+     <li class="itemize">create a trait:
+          <ul class="itemize2">
+          <li class="itemize">enter a unique identifying text (keep it short)
+          </li>
+          <li class="itemize">enter  a  description  (optional  and  changeable  later  on;  e.g.  to  make  some
+          observation notes)
+          </li>
+          <li class="itemize">go to the second tab and enter the labelling (either manually or via a textfile)
+                                                                                
+                                                                                
+          </li>
+          <li class="itemize">go to the third tab and adjust the SVM parameters (details TBD)
+          </li>
+          <li class="itemize">compute the trait
+          </li>
+          <li class="itemize">compute the trait warpfield</li></ul>
+     </li></ul>
+<!--l. 317--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">4.3 </span> <a 
+ id="x1-130004.3"></a>Refine shape model according to Region of Interest</h4>
+<!--l. 319--><p class="noindent" ><span 
+class="ectt-1095">[Specify ROI]</span>
+<!--l. 321--><p class="noindent" >
+<div class="center" 
+>
+<!--l. 321--><p class="noindent" >
+
+<!--l. 322--><p class="noindent" ><img height="250px"
+src="screenshots/sdmvis_roi.png" alt="PIC"  
+>
+</div>
+<!--l. 325--><p class="noindent" >TBD
+<!--l. 328--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">4.4 </span> <a 
+ id="x1-140004.4"></a>Subset Selection (not available yet)</h4>
+<!--l. 331--><p class="noindent" >
+<h4 class="subsectionHead"><span class="titlemark">4.5 </span> <a 
+ id="x1-150004.5"></a>Trait Quantification (not available yet)</h4>
+ 
+</body></html> 
+
+                                                                                
+
+

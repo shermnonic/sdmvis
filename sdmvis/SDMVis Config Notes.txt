@@ -1,0 +1,59 @@
+SDMVis notes about the new config concept
+=========================================
+Max Hermann, March 9, 2011
+
+
+Analysis configuration
+----------------------
+
+Input: M registered volume datasets, N voxels
+
+Configuration items:
+	1) 1 x mean shape (ini: "reference")
+	2) K x eigenwarps (ini: "warpfields")
+	3) warps data matrix, mean subtracted (3*N x M)
+	4) scatter matrix (M x M)
+	5) PCA analysis
+	6) names
+
+Dependencies:
+  - 1)+2) are needed for visualization
+  - 2) is computed from 4)+5)
+  - 4) is computed from 3).
+
+
+Current files "Analysis Mandibles_08_RM250_Gerbillinae":
+--------------------------------------------------------
+1) 	mean_estimate1.mhd,	mean_estimate1.raw	   (   6.3MB)
+2)	eigenwarp0_%ROI%.mhd, eigenwarp0_%ROI%.mhd (  76.6MB) x 5
+	eigenwarp1_...
+	eigenwarp2_...
+	eigenwarp3_...
+	eigenwarp4_...  (%ROI%=nothreshold?)
+3)	warps_meanfree.mat                         (2300.0MB)
+4)	scatter_t_nothreshold.mat
+5)	yapca_%ROI%_C5.mat
+	yapca_%ROI%_U5.mat
+	yapca_%ROI%_lambda5.mat
+6)	names.txt
+
++ projector matrix
++ trait vector
+
+
+Concept ideas
+-------------
+
+- own sub-directory for each analysis config
+   (allows for unique naming scheme for all configs)
+
+- one sdmvis .ini for each analysis config
+
+- root directory w/ initial config ?
+
+- TODO: automate scale computation !!!
+        / include normalizations
+
+- include names!
+
+- handle trait vectors conveniently

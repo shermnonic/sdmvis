@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QtHelpProject version="1.0">
+ <namespace>UniversityBonnComputerGraphics.SDMVIS.0.3</namespace>
+ <virtualFolder>doc</virtualFolder>
+ <customFilter name="SDMVIS 0.3">
+	 <filterAttribute>SDMVIS</filterAttribute>
+	 <filterAttribute>0.3</filterAttribute>
+ </customFilter>
+ <filterSection>
+	 <filterAttribute>SDMVIS</filterAttribute>
+	 <filterAttribute>0.3</filterAttribute>
+	 <toc>
+		 <section title="SDMVIS Manual" ref="sdmvis-manual.html">
+			 <section title="Overview" ref="sdmvis-manual.html#x1-20001"/>
+			 <section title="Data Management" ref="sdmvis-manual.html#x1-30002"/>
+			 <section title="Visualizations" ref="sdmvis-manual.html#x1-40003"/>
+			 <section title="Analysis Tasks" ref="sdmvis-manual.html#x1-100004"/>
+		 </section>
+	 </toc>
+	 <keywords>
+		 <keyword name="overview" ref="sdmvis-manual.html#x1-20001"/>
+		 <!--<keyword name="foo" id="MyApplication::foo" ref="doc.html#foo"/>-->
+		 <!--<keyword id="MyApplication::foobar" ref="doc.html#foobar"/>-->
+	 </keywords>
+	 <files>
+		 <file>sdmvis-manual.css</file>
+		 <file>*.html</file>
+		 <file>images/*.png</file>
+		 <file>images/*.jpg</file>
+		 <file>screenshots/*.jpg</file>
+		 <file>screenshots/*.png</file>
+	 </files>
+ </filterSection>
+</QtHelpProject>
