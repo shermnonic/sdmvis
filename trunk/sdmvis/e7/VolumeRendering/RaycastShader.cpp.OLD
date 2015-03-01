@@ -1,0 +1,177 @@
+// Max Hermann, March 22, 2010
+#include "RaycastShader.h"
+#include <string>
+#include <sstream>
+#include <cassert>
+
+using namespace GL;
+using namespace std;
+
+//------------------------------------------------------------------------------
+//  string utility function
+//------------------------------------------------------------------------------
+
+int string_replace( std::string& text, std::string marker, const char* replacement );
+int string_replace( std::string& s, std::string marker, std::string replacement );
+
+int string_replace( std::string& text, std::string marker, const char* replacement )
+{
+	std::string repl_s( replacement );
+	return string_replace( text, marker, repl_s );
+}
+
+int string_replace( std::string& s, std::string marker, std::string replacement )
+{
+	int num_replacements = 0;
+	std::size_t pos = s.find( marker );
+	while( pos != std::string::npos )
+	{
+		s.replace( pos, marker.length(), replacement );		
+		num_replacements++;
+		pos = s.find( marker );
+	}
+	return num_replacements;
+}
+
+std::string string_from_number( int i )
+{
+	std::stringstream ss;
+	ss << i;
+	return ss.str();
+}
+
+bool read_shader_string_from_disk( std::string filename, std::string& ret )
+{
+	char* buf = GLSLProgram::read_shader_from_disk( filename.c_str() );
+	if( !buf ) return false;
+	ret = string(buf);
+	delete [] buf; // we are responsible of freeing the buffer!
+	return true;
+}
+
+//------------------------------------------------------------------------------
+bool RaycastShader::init()
+{
+	// release previous shader
+	if( m_shader ) deinit();
+
+	// create shader
+	m_shader = new GLSLProgram;
+	if( !m_shader )
+	{
+		cerr << "Error: Creation of Raycast GLSL shader failed!" << endl;
+		return false;
+	}
+
+	// read shaders into strings
+	string fs, vs, fs_texture_sampler, fs_texture_warp;
+	if( read_shader_string_from_disk("shader/raycast.fs.glsl", fs ) &&
+	    read_shader_string_from_disk("shader/raycast.vs.glsl", vs ) &&
+	    read_shader_string_from_disk("shader/raycast_texture_sampler.glsl", fs_texture_sampler ) &&
+	    read_shader_string_from_disk("shader/raycast_texture_warp.glsl"   , fs_texture_warp )
+	   )
+	{
+		// everything went fine :-)
+	}
+	else
+		// at least one failed
+		return false;
+
+	// append configurable shaders
+	string_replace( fs, "<__include_SAMPLER__>", fs_texture_sampler );
+	string_replace( fs, "<__include_WARP__>"   , fs_texture_warp    );
+
+	// replace our custom preprocessor macros according to init config
+	string_replace( fs, "<__opt_ISOSURFACE__>", m_rendermode==RenderIsosurface ? "1" : "0" );
+	string_replace( fs, "<__opt_MIP__>"       , m_rendermode==RenderMIP        ? "1" : "0" );
+	string_replace( fs, "<__opt_WARP__>"      , m_warp       ? "1" : "0" );
+	string_replace( fs, "<__opt_MEANWARP__>"  , m_meanwarp   ? "1" : "0" );
+	string_replace( fs, "<__opt_DEPTHTEX__>"  , m_depth      ? "1" : "0" );
+	string_replace( fs, "<__opt_CHANNELS__>", string_from_number( m_num_channels ) );
+	string_replace( fs, "<__opt_WIDTH__>"   , string_from_number( m_size[0] ) );
+	string_replace( fs, "<__opt_HEIGHT__>"  , string_from_number( m_size[1] ) );
+	string_replace( fs, "<__opt_DEPTH__>"   , string_from_number( m_size[2] ) );
+
+//cout << "DEBUG: Raycast fragment shader:" << endl << fs << "***EOF***" << endl;
+
+	if( fs.find("<__")!=string::npos || fs.find("__>")!=string::npos )
+	{
+		cerr << "Error: Mismatch in shader pre-processing!" << endl;
+		return false;
+	}
+
+	// load & compile
+	if( !m_shader->load( vs, fs ) )
+	{
+		cerr << "Error: Compilation of Raycast GLSL shader failed!" << endl;
+		return false;
+	}
+
+	// get uniform locations
+	m_loc_voltex      = m_shader->getUniformLocation( "voltex"      );
+	m_loc_fronttex    = m_shader->getUniformLocation( "fronttex"    );
+	m_loc_backtex     = m_shader->getUniformLocation( "backtex"     ); 
+	m_loc_isovalue    = m_shader->getUniformLocation( "isovalue"    );
+	m_loc_alpha_scale = m_shader->getUniformLocation( "alpha_scale" );
+	if( m_warp )
+	{
+		m_loc_warptex       = m_shader->getUniformLocation( "warptex" );
+		m_loc_warp_strength = m_shader->getUniformLocation( "warp_strength" );
+		m_loc_warp_ofs      = m_shader->getUniformLocation( "warp_ofs" );
+
+		if( m_meanwarp )
+		{
+			m_loc_meanwarptex = m_shader->getUniformLocation( "meanwarptex" );
+		}
+	}
+	if( m_depth )
+	{
+		m_loc_depthtex = m_shader->getUniformLocation( "depthtex" );
+	}
+
+	return checkGLError( "RaycastShader::init()" );
+}
+
+//------------------------------------------------------------------------------
+void RaycastShader::deinit()
+{
+	if(m_shader) delete m_shader; m_shader=NULL;
+}
+
+//------------------------------------------------------------------------------
+void RaycastShader::bind( GLuint fronttex, GLuint backtex, GLuint voltex,
+						  GLuint warptex, GLuint meanwarptex, GLuint depthtex )
+{
+	if( !m_shader ) return;
+
+	// bind shader
+	m_shader->bind();
+	glUniform1i( m_loc_voltex     , voltex   );
+	glUniform1i( m_loc_fronttex   , fronttex );
+	glUniform1i( m_loc_backtex    , backtex  );
+	glUniform1f( m_loc_isovalue   , m_isovalue    );
+	glUniform1f( m_loc_alpha_scale, m_alpha_scale );
+	if( m_warp )
+	{
+		glUniform1i( m_loc_warptex, warptex );
+		glUniform1f( m_loc_warp_strength, m_warp_strength );
+		glUniform3f( m_loc_warp_ofs, m_warp_ofs[0], m_warp_ofs[1], m_warp_ofs[2] );
+
+		if( m_meanwarp )
+		{
+			glUniform1i( m_loc_meanwarptex, meanwarptex );
+		}
+	}
+	if( m_depth )
+	{
+		glUniform1i( m_loc_depthtex, depthtex );
+	}
+}
+
+//------------------------------------------------------------------------------
+void RaycastShader::release()
+{
+	if( !m_shader ) return;
+	m_shader->release();
+}
+

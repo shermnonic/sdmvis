@@ -1,0 +1,132 @@
+// Max Hermann, March 22, 2010
+#ifndef RAYCASTSHADER_H
+#define RAYCASTSHADER_H
+
+#include <GL/GLSLProgram.h>
+#include <GL/GLError.h>
+
+/// One pass raycasting shader (bundles GLSL program and uniform parameters)
+/// Supports additional warp/displacement volume.
+class RaycastShader
+{
+public:
+	enum RenderMode {
+		RenderDirect    =0, ///< Direct Volume Rendering (accumulate intensity along ray)
+		RenderIsosurface=1, ///< Non-polygonal Isosurface (stop ray at specific intensity)
+		RenderMIP       =2, ///< Maximum-intensity-projection
+	};
+
+	RaycastShader()
+		: m_shader      (NULL)
+		 ,m_rendermode  (RenderDirect)
+		 ,m_num_channels(1)
+		 ,m_warp        (false)
+		 ,m_meanwarp    (false)
+		 ,m_isovalue    (0.042f) // good default for my rodent skulls
+		 ,m_alpha_scale (0.010f) // dito
+		 ,m_warp_strength (1.f)
+		{
+			m_size[0] = m_size[1] = m_size[2] = 128;
+			m_warp_ofs[0] = m_warp_ofs[1] = m_warp_ofs[2] = 0.f;
+		}
+	~RaycastShader() { if(m_shader) delete m_shader; }
+
+	/// configure shader before calling init() with configuration setters!
+	bool init();
+	void deinit(); // destruction of shader only in GL context possible
+
+	/// bind shader and set used texture units
+	void bind( GLuint fronttex=0, GLuint backtex=1, GLuint voltex=2, 
+	           GLuint warptex=3, GLuint meanwarptex=4, GLuint depthtex=5 );
+	void release();
+
+	///@{ Configuration (will be applied on call to \a init())
+	void  set_volume_size( int width, int height, int depth )
+		{
+			m_size[0] = width;
+			m_size[1] = height;
+			m_size[2] = depth;
+		}
+	void  set_num_channels( int nc ) { m_num_channels = nc; }
+	int   get_num_channels() const { return m_num_channels; }
+	void  set_rendermode( RenderMode mode )
+		{
+			m_rendermode = mode;
+		}
+	RenderMode get_rendermode() const
+		{
+			return m_rendermode;
+		}
+	void  cycle_rendermode()
+		{
+			m_rendermode = static_cast<RenderMode>( ((int)m_rendermode+1) % 3 );
+		}
+	void  set_warp_enabled( bool b ) { m_warp = b; }
+	bool  get_warp_enabled() const { return m_warp; }
+	void  set_depth_enabled( bool b ) { m_depth = b; }
+	bool  get_depth_enabled( bool b ) const { return m_depth; }
+	void  set_meanwarp_enabled( bool b ) { m_meanwarp = b; }
+	bool  get_meanwarp_enabled() const { return m_meanwarp; }
+	///@}
+
+	///@{ Uniforms
+	void  set_isovalue( float iso ) { m_isovalue = iso; }
+	float get_isovalue() const { return m_isovalue; }
+	void  set_alpha_scale( float sc ) { m_alpha_scale = sc; }
+	float get_alpha_scale() const { return m_alpha_scale; }
+	void  set_warp_strength( float s ) { m_warp_strength = s; }
+	float get_warp_strength() const { return m_warp_strength; }
+	void  set_warp_ofs( float dx, float dy, float dz )
+	{
+		m_warp_ofs[0] = dx;
+		m_warp_ofs[1] = dy;
+		m_warp_ofs[2] = dz;
+	}
+	void  set_warp_ofs( float* ofs )
+	{
+		m_warp_ofs[0] = ofs[0];
+		m_warp_ofs[1] = ofs[1];
+		m_warp_ofs[2] = ofs[2];
+	}
+	void get_warp_ofs( float* ofs ) const
+	{
+		ofs[0] = m_warp_ofs[0];
+		ofs[1] = m_warp_ofs[1];
+		ofs[2] = m_warp_ofs[2];
+	}
+	void get_warp_ofs( float& dx, float& dy, float& dz )
+	{
+		dx = m_warp_ofs[0];
+		dy = m_warp_ofs[1];
+		dz = m_warp_ofs[2];
+	}
+	///@}
+
+private:
+	GL::GLSLProgram*  m_shader;
+	GLint             m_loc_voltex,
+	                  m_loc_warptex,
+					  m_loc_meanwarptex,
+	                  m_loc_fronttex,
+	                  m_loc_backtex,
+					  m_loc_isovalue,
+					  m_loc_alpha_scale,
+					  m_loc_warp_strength,
+					  m_loc_warp_ofs,
+					  m_loc_depthtex;
+	// configuration
+	int  m_size[3];
+	RenderMode  m_rendermode;
+	int  m_num_channels;
+	bool m_warp;
+	bool m_meanwarp;
+	bool m_depth;
+
+	// variables
+	float  m_isovalue;
+	float  m_alpha_scale;
+	float  m_warp_strength;
+	float  m_warp_ofs[3];
+};
+
+#endif
