@@ -112,6 +112,11 @@ bool RaycastShader::init( std::string fs_path, std::string vs_path )
 				<< "    uniform sampler3D warpmode" << i << ";\n"
 				<< "    uniform float lambda"       << i << ";\n";
 
+#define RAYCASTSHADER_UGLY_HACK_TO_REUSE_LAST_UNIFORM_COEFFICIENT_OTHERWISE
+#ifdef RAYCASTSHADER_UGLY_HACK_TO_REUSE_LAST_UNIFORM_COEFFICIENT_OTHERWISE
+			// Skip displacement code for last parameter
+			if( i >= m_num_warps-1 ) continue;
+#endif
 			ss_warp_routine 
 				<< "    if( abs(lambda"<<i<<")>eps ) disp += "
 				   "lambda"<<i<<" * mode_scale*(texture3D(warpmode"<<i<<", x).rgb "
