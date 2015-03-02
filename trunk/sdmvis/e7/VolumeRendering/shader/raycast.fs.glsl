@@ -49,7 +49,7 @@
 // 2 - custom warp strength coloring (see code below)
 // 3 - fancy coloring (add displacement to phong color)
 //#define COLORMODE <__opt_COLORMODE__>
-#define COLORMODE 2
+#define COLORMODE 0
 
 // Non-polygonal isosurface rendering with Phong shading
 // and intersection refinement
@@ -325,9 +325,79 @@ mat3 expm( mat3 M )
 	return M;
 }
 
+//-----------------------------------------------------------------------------
+// Reformation on Apodemus Flavicollis
+
 float window( float edge0, float edge1, float delta, float x )
 {	
 	return smoothstep(edge0-delta,edge0+delta,x)*(1.0-smoothstep(edge1-delta,edge1+delta,x));
+}
+
+vec3 reform_flavi_ears( vec3 x )
+{	
+	// Local support
+	float wz = window( 0.7,0.9,0.025, x.z );
+	float wy = window( 0.5,0.9,0.125, x.y );	
+	float w2 = wz*wy* smoothstep( 0.6, 1.0, x.x );
+	float w1 = wz*wy* (1.0 - smoothstep( 0.0, 0.35, x.x ));		
+	
+	// Same rotation center for both trafos
+	vec3 center = vec3(0.5,0.6,0.0);
+	
+	// Log affine trafos
+	vec3 t = vec3(-0.3,0.0,0.0);
+	mat4 L1= transpose(mat4(     
+					   0.0,   -1.2217,      0.0,      t.x,
+					1.2217,       0.0,      0.0,      t.y,
+					   0.0,       0.0,      0.0,      t.z,
+					   0.0,       0.0,      0.0,      0.0  ));
+	mat4 L2= -L1;
+	
+	// Velocities
+	vec3 v1 = L1[3].xyz + (L1*vec4(x-center,1.0)).xyz;
+	vec3 v2 = L2[3].xyz + (L2*vec4(x-center,1.0)).xyz;
+	
+	// Blend velocities
+	//return 0.3*lambda0*w1*(-v1) + 0.3*lambda1*w2*(-v2);
+	return 0.9*w1*v1 + 0.6*w2*v2;	
+}
+
+vec3 reform_flavi_nose( vec3 x )
+{
+	vec3 center = vec3(0.4,0.2,0.1875);		
+	float wz = window( -0.4,0.2,0.125, x.z );
+	float logt = 1.5*0.872664625997165;
+	mat4 L = transpose(mat4( // matrices are given column-major
+					   0.0,       0.0,      0.0,      0.0,
+					   0.0,       0.0,     logt,      0.0,
+					   0.0,     -logt,      0.0,      0.0,
+					   0.0,       0.0,      0.0,      0.0  ));
+	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
+	//return 0.3*lambda0*wz*(-v); 
+	return 0.3*wz*v; 
+}
+
+vec3 reform_flavi_teeth( vec3 x )
+{
+	vec3 center = vec3(0.5,0.3,0.5);
+	vec3 t = vec3(0.0);
+	mat4 L1= transpose(mat4(     
+					   0.0,   -1.2217,      0.0,      t.x,
+					1.2217,       0.0,      0.0,      t.y,
+					   0.0,       0.0,      0.0,      t.z,
+					   0.0,       0.0,      0.0,      0.0  ));
+	mat4 L2= -L1;
+	
+	float wy = window(0.35,0.8,0.025,x.y),
+	      wz = window(0.375,0.55,0.05,x.z),
+	      w1 = wy*wz*window(0.19,0.5,0.025,x.x),
+		  w2 = wy*wz*window(0.5,0.82,0.025,x.x);
+	
+	vec3 v1 = (L1*vec4(x-center,1.0)).xyz - L1[3].xyz,
+	     v2 = (L2*vec4(x-center,1.0)).xyz - L2[3].xyz;
+	
+	return 0.4*(w1*v1 + w2*v2);
+	//return 0.3*lambda0*w1*v1 + 0.3*lambda1*w2*v2;
 }
 
 vec3 get_warp2( vec3 x )
@@ -398,53 +468,8 @@ vec3 get_warp2( vec3 x )
 	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
 	return w*(-v); // + get_warp(x);
 #elif TEST==3
-	// TEST REFORMATION APODEMUS FLAVICOLLIS
-	
-	// Local support
-	//float w2 = window( 0.5, 0.7, 0.025, x.x ) * smoothstep( 0.4, 0.6, x.x );
-	//float w1 = window( 0.05, 0.5, 0.025, x.x ) * (1.0 - w2);		
-
-	float w2 = smoothstep( 0.1, 0.6, x.x );
-	float w1 = 1.0 - w2;	
-
-	float wz = window( 0.65,0.9,0.025, x.z ); //1.0; //window( 0.375, 0.575, 0.025, x.z );
-	w1 *= wz;
-	w2 *= wz;
-	
-	float wy = 1.0; //smoothstep( 0.4, 0.7, x.y );
-	
-	// Same rotation center for both trafos
-	vec3 center = vec3(0.5,0.4,0.0);
-	
-	// Log affine trafos
-	vec3 t = vec3(-0.3,0.0,0.0); // was: vec3( -0.2443, 0.3054, 0.0 );
-	mat4 L1= transpose(mat4(     
-					   0.0,   -1.2217,      0.0,      t.x,
-					1.2217,       0.0,      0.0,      t.y,
-					   0.0,       0.0,      0.0,      t.z,
-					   0.0,       0.0,      0.0,      0.0  ));
-	mat4 L2= -L1;
-	
-	// Velocities
-	vec3 v1 = L1[3].xyz + (L1*vec4(x-center,1.0)).xyz;
-	vec3 v2 = L2[3].xyz + (L2*vec4(x-center,1.0)).xyz;
-	
-	// Blend log-demons and affine velocity
-	return lambda0*wy*w1*(-v1) + lambda1*wy*w2*(-v2);
-	//return wy*( w1*v1 + w2*(v2) ) + get_warp( x );
+	return reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x ) + get_warp( x );
 #elif TEST==4
-	// TEST REFORMATION FLAVICOLLIS INCISOR
-	vec3 center = vec3(0.4,0.2,0.1875);		
-	float wz = window( -0.4,0.2,0.125, x.z );
-	float logt = 1.5*0.872664625997165;
-	mat4 L = transpose(mat4( // matrices are given column-major
-					   0.0,       0.0,      0.0,      0.0,
-					   0.0,       0.0,     logt,      0.0,
-					   0.0,     -logt,      0.0,      0.0,
-					   0.0,       0.0,      0.0,      0.0  ));
-	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
-	return 0.3*lambda0*wz*(-v); 
-	//return 0.5*wz*v + get_warp(x);
 #else
 	return get_warp( x );
 #endif
