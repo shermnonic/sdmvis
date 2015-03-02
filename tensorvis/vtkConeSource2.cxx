@@ -68,8 +68,8 @@ int vtkConeSource2::RequestData(
   vtkInformation *outInfo = outputVector->GetInformationObject(0);
 
   double angle;
-  int numLines, numPolys, numPts;
-  double x[3], xbot;
+  int /*numLines,*/ numPolys, numPts;
+  double x[3]; //, xbot;
   int i;
   vtkIdType pts[VTK_CELL_SIZE];
   vtkPoints *newPoints; 
@@ -120,10 +120,10 @@ int vtkConeSource2::RequestData(
 
   // Set things up; allocate memory
   //
-  switch ( this->Resolution )
+  //switch ( this->Resolution )
   {
   // Case 0,1,2 are no longer valid in vtkConeSource2
-  default:
+  //default:
     if (createBottom)
       {
       // piece 0 has cap.
@@ -137,7 +137,7 @@ int vtkConeSource2::RequestData(
       }
     newPolys = vtkCellArray::New();
     newPolys->Allocate(newPolys->EstimateSize(numPolys,this->Resolution));
-    break;
+    //break;
   }
   newPoints = vtkPoints::New();
   newPoints->SetDataTypeToFloat(); //used later during transformation
@@ -172,18 +172,18 @@ int vtkConeSource2::RequestData(
   //~ xbot = -this->Height / 2.0;
 
 #define CREATE_CIRCLE_POINT( x, theta, v1, v2, mu )  \
-   	    // point on unit circle                          \
+   	    /* point on unit circle */                       \
 		double cost = this->Radius*cos(theta),           \
 		       sint = this->Radius*sin(theta);           \
-		// circle in v1,2 plane translated by mu         \
+		/* circle in v1,2 plane translated by mu */      \
 		x[0] = cost * v1[0]	 +  sint * v2[0]  +  mu[0];  \
 		x[1] = cost * v1[1]	 +  sint * v2[1]  +  mu[1];  \
 		x[2] = cost * v1[2]	 +  sint * v2[2]  +  mu[2];	
 
-  switch (this->Resolution) 
+  //switch (this->Resolution) 
   {
   // Case 0,1,2 are no longer valid in vtkConeSource2
-  default: // General case: create Resolution triangles and single cap
+  //default: // General case: create Resolution triangles and single cap
     // create the bottom.
     if ( createBottom )
       {

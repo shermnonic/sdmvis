@@ -931,7 +931,7 @@ SDMVisMainWindow::SDMVisMainWindow()
 		*menuAnalysis,        // ifdef DEVELOPER_MODE && SDMVIS_MANUAL_ANALYSIS
 		*menuOptions,
 		*menuWindows,
-		*menuVTKVis,          // ifdef SDMVIS_VTKVISWIDGET_ENABLED
+		//*menuVTKVis,          // ifdef SDMVIS_VTKVISWIDGET_ENABLED
 		*menuDebug,           // ifdef DEVELOPER_MODE
 		*menuHelp;
 

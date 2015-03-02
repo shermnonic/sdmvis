@@ -286,7 +286,7 @@ void GlyphControls::setVarVisRenderer( VarVisRender *varvisRen )
 
 void GlyphControls::setExpertMode( bool enable )
 {
-	for( unsigned i=0; i < m_advancedOptions.size(); i++ )
+	for( int i=0; i < m_advancedOptions.size(); i++ )
 		m_advancedOptions[i]->setVisible( enable );
 }
 
@@ -469,7 +469,7 @@ void GlyphControls::setEigenwarps( const QStringList& mhdFilenames )
 {
 	clearEigenwarps();
 
-	for( unsigned i=0; i < mhdFilenames.size(); i++ )
+	for( int i=0; i < mhdFilenames.size(); i++ )
 	{
 		addEigenwarp( mhdFilenames.at(i) );
 	}

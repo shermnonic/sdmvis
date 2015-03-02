@@ -109,7 +109,7 @@ int PointSamplerFilter::RequestData(vtkInformation *vtkNotUsed(request),
 		// now we have a areaValue and we need to find the index in the area Vector 
 		bool done=false;
 		int left=0;
-		int right=areaVector.size();
+		int right=(int)areaVector.size();
 		int mid=0.5*(left+right);
 		while(!done)
 		{
