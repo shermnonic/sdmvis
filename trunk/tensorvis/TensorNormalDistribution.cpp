@@ -219,13 +219,13 @@ void TensorNormalDistribution::computeModes()
 
 	// Covariance weight (note the factor 2.0 in the lower right block)
 	Matrix W(6,6);
-	double sqrt2 = sqrt(2.);
-	W(0,0)=1.; W(0,1)=1.; W(0,2)=1.; W(0,3)=sqrt2; W(0,4)=sqrt2; W(0,5)=sqrt2;
-	W(1,0)=1.; W(1,1)=1.; W(1,2)=1.; W(1,3)=sqrt2; W(1,4)=sqrt2; W(1,5)=sqrt2;
-	W(2,0)=1.; W(2,1)=1.; W(2,2)=1.; W(2,3)=sqrt2; W(2,4)=sqrt2; W(2,5)=sqrt2;
-	W(3,0)=sqrt2; W(3,1)=sqrt2; W(3,2)=sqrt2; W(3,3)=2.; W(3,4)=2.; W(3,5)=2.;
-	W(4,0)=sqrt2; W(4,1)=sqrt2; W(4,2)=sqrt2; W(4,3)=2.; W(4,4)=2.; W(4,5)=2.;
-	W(5,0)=sqrt2; W(5,1)=sqrt2; W(5,2)=sqrt2; W(5,3)=2.; W(5,4)=2.; W(5,5)=2.;
+	float sqrt2 = (float)sqrt(2.), one=1.f, two=2.f;
+	W(0,0)=one; W(0,1)=one; W(0,2)=one; W(0,3)=sqrt2; W(0,4)=sqrt2; W(0,5)=sqrt2;
+	W(1,0)=one; W(1,1)=one; W(1,2)=one; W(1,3)=sqrt2; W(1,4)=sqrt2; W(1,5)=sqrt2;
+	W(2,0)=one; W(2,1)=one; W(2,2)=one; W(2,3)=sqrt2; W(2,4)=sqrt2; W(2,5)=sqrt2;
+	W(3,0)=sqrt2; W(3,1)=sqrt2; W(3,2)=sqrt2; W(3,3)=two; W(3,4)=two; W(3,5)=two;
+	W(4,0)=sqrt2; W(4,1)=sqrt2; W(4,2)=sqrt2; W(4,3)=two; W(4,4)=two; W(4,5)=two;
+	W(5,0)=sqrt2; W(5,1)=sqrt2; W(5,2)=sqrt2; W(5,3)=two; W(5,4)=two; W(5,5)=two;
 	
 	// A very expensive loop ;-)
 	static Matrix Sigma(6,6);
@@ -260,12 +260,12 @@ void TensorNormalDistribution::computeModes()
 		// Eigen-tensor weight
 		double one_over_sqrt2 = 1. / sqrt(2.);
 		Vector wv(6);
-		wv(0) = 1.;
-		wv(1) = 1.;
-		wv(2) = 1.;
-		wv(3) = one_over_sqrt2;
-		wv(4) = one_over_sqrt2;
-		wv(5) = one_over_sqrt2;
+		wv(0) = (Vector::value_type)1.;
+		wv(1) = (Vector::value_type)1.;
+		wv(2) = (Vector::value_type)1.;
+		wv(3) = (Vector::value_type)one_over_sqrt2;
+		wv(4) = (Vector::value_type)one_over_sqrt2;
+		wv(5) = (Vector::value_type)one_over_sqrt2;
 		
 		// Copy result
 		ofs = 0;

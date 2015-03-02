@@ -10,6 +10,7 @@ if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
+
 #---- User config  ------------------------------------------------------------
 set( SDMVIS_USE_VARVIS             "TRUE"  CACHE BOOL 
 		"Add VarVis functionality (requires VTK)" )
@@ -30,6 +31,14 @@ if( SDMVIS_USE_VARVIS OR SDMVIS_USE_TENSORVIS )
 	message( STATUS "VTK enabled since one or more components require VTK." )
 	set( SDMVIS_USE_VTK "TRUE" )
 endif()
+
+
+#---- Compiler config ---------------------------------------------------------
+if( WIN32 )
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+endif()
+
 
 #---- Dependencies ------------------------------------------------------------
 #

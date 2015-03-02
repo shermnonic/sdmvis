@@ -436,7 +436,7 @@ QString getShortName( const QString& name )
 	{
 		// "Multi_token_identifiert_string_Foo12345" -> "Mu.to..12345"
 		// "Multi_Foo12345" -> "Mu..12345"
-		for( unsigned i=0; i < std::min( tokens.size()-1, 2 ); i++ )
+		for( unsigned i=0; i < std::min( (unsigned)tokens.size()-1, (unsigned)2 ); i++ )
 		{
 			shortName += tokens.at(i).left(2) + QString(".");
 		}

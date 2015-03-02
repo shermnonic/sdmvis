@@ -210,7 +210,7 @@ void VectorfieldClustering::clusterIt()
 		double sumX=0;
 		double sumY=0;
 		double sumZ=0;
-		int sizeOfCluster=clusterVector[iA].size();
+		int sizeOfCluster=(int)clusterVector[iA].size();
 		if (sizeOfCluster==0)
 		{
 			
@@ -380,7 +380,7 @@ void VectorfieldClustering::clusterIt3D()
 		double sumY=0;
 		double sumZ=0;
 
-		int sizeOfCluster=clusterVector[iA].size();
+		int sizeOfCluster=(int)clusterVector[iA].size();
 
 		if (sizeOfCluster==0)
 		{
@@ -488,7 +488,7 @@ void VectorfieldClustering::generate3DClustering()
 			tempPoint.setVector(vector[0],vector[1],vector[2]);
 			m_pointList.push_back(tempPoint);
 		}
-		m_numberOfPoints= m_pointList.size();
+		m_numberOfPoints=(int) m_pointList.size();
 		
 		// init centroids 
 		generateCentroids();
@@ -931,10 +931,10 @@ void VectorfieldClustering::setSamplePoints( vtkPolyData* samplePts, std::vector
 		}
 		tempPointList.push_back(tempPoint);
 	}
-	int someSize=tempPointList.size();
+	int someSize=(int)tempPointList.size();
 
 	setPointList(tempPointList);	
-	setNumberOfPoints( tempPointList.size() );
+	setNumberOfPoints( (int)tempPointList.size() );
 }
 
 void VectorfieldClustering::setNumberOfCentroidsRelative( double fraction )

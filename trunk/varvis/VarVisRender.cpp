@@ -664,7 +664,7 @@ void VarVisRender::setClusterVisibility(bool visible)
 	if(m_Cluster)
 	{
 		m_showCluster=visible;
-		int size=m_Cluster->GetActors().size();
+		int size=(int)m_Cluster->GetActors().size();
 		for( int iA=0;iA<m_Cluster->GetActors().size();iA++)
 			m_Cluster->GetActors()[iA]->SetVisibility(visible);
 	}
@@ -2457,8 +2457,8 @@ void VarVisRender::setShowVolumeMeshes(bool show)
 		m_analyseMeshActor.at(iA)->SetVisibility(false);
 	}
 
-	int numberOfVolumes=m_analyseVolumen.size();
-	int numberOfMeshs=m_analyseMeshActor.size();
+	int numberOfVolumes=(int)m_analyseVolumen.size();
+	int numberOfMeshs=(int)m_analyseMeshActor.size();
 	if (numberOfMeshs==0 || numberOfVolumes==0)
 	{
 	 return ;

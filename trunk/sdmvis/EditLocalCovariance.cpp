@@ -33,7 +33,7 @@ void EditLocalCovariance::
 
 	// Sample edit directions
 
-	for( unsigned i=0; i < m_icosahedron.num_vertices(); i++ )
+	for( int i=0; i < m_icosahedron.num_vertices(); i++ )
 	{
 		std::cout << "Sampling edit directions " 
 			<< i+1 << "/" << m_icosahedron.num_vertices() << " \r";

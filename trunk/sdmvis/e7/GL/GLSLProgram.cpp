@@ -19,7 +19,7 @@ char* GLSLProgram::read_shader_from_disk( const char* filename )
 	if( is.good() )
 	{	
 		is.seekg(0,ios::end);
-		int len = is.tellg();
+		std::streamoff len = is.tellg();
 		is.seekg(0,ios::beg);
 
 		char* buf = new char[len+1];
@@ -69,7 +69,7 @@ bool GLSLProgram::load( const std::string& vertSrc, const std::string& fragSrc )
 
 bool GLSLProgram::shaderSource( GLenum type, const std::string& src )
 {
-	GLint size = src.size();
+	GLint size = (GLint)src.size();
 	GLchar* data = new GLchar[size+1];
 	memset( data, 0, size+1 );
 	memcpy( data, src.data(), size );

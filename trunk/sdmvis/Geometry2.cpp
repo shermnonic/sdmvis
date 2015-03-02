@@ -71,8 +71,8 @@ void SimpleGeometry::reserve_faces( int n )
 
 #ifndef GEOMETRY2_NO_BUFFER_SUPPORT
 	
-int SimpleGeometry::num_vertices() const { return m_vdata.size()/3; }
-int SimpleGeometry::num_faces()    const { return m_fdata.size()/3; }
+int SimpleGeometry::num_vertices() const { return (int)m_vdata.size()/3; }
+int SimpleGeometry::num_faces()    const { return (int)m_fdata.size()/3; }
 
 vec3 SimpleGeometry::get_vertex( int i )
 {
@@ -89,7 +89,7 @@ int SimpleGeometry::add_face( Face f )
 	for( int i=0; i < 3; ++i )
 		m_fdata.push_back( f.vi[i] );
 	assert( m_fdata.size()%3 == 0 );
-	return m_fdata.size()/3 - 1;
+	return (int)m_fdata.size()/3 - 1;
 }
 
 int SimpleGeometry::add_vertex_and_normal( vec3 v, vec3 n )
@@ -101,7 +101,7 @@ int SimpleGeometry::add_vertex_and_normal( vec3 v, vec3 n )
 	}
 	assert( m_vdata.size() == m_ndata.size() );
 	assert( m_vdata.size()%3 == 0 );
-	return m_vdata.size()/3 - 1;
+	return (int)m_vdata.size()/3 - 1;
 }
 
 float* SimpleGeometry::get_vertex_ptr()  { return &m_vdata[0]; }
@@ -183,7 +183,7 @@ void Icosahedron::add_face_subdivision( Face f, int levels )
 	v13.normalize();
 	v23.normalize();
 
-	float foo = m_platonicConstantZ;
+	float foo = (float)m_platonicConstantZ;
 	v12 *= foo;
 	v13 *= foo;
 	v23 *= foo;
@@ -239,7 +239,7 @@ void Icosahedron::create( int levels )
 	   {6,1,10}, {9,0,11}, {9,11,2}, {9,2,5}, {7,2,11} };
 #else
 	// Classic Icosahedron definition (based solely on golden ratio constant)
-	float tao = m_platonicConstantX; //1.61803399;
+	float tao = (float)m_platonicConstantX; //1.61803399;
 	vec3 vdata[12] = { vec3(1,tao,0),vec3(-1,tao,0),vec3(1,-tao,0),vec3(-1,-tao,0),
 					   vec3(0,1,tao),vec3(0,-1,tao),vec3(0,1,-tao),vec3(0,-1,-tao),
 					   vec3(tao,0,1),vec3(-tao,0,1),vec3(tao,0,-1),vec3(-tao,0,-1) };
@@ -250,7 +250,7 @@ void Icosahedron::create( int levels )
 #endif
 
 	// exact memory calulation
-	size_t n = (double)20*pow(4.f,levels);
+	int n = (int)(20.0*pow(4.0,levels));
 	reserve_vertices( n - 8 );
 	reserve_faces   ( n );
 	   
