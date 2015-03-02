@@ -328,7 +328,7 @@ bool VolumeRendererRaycast::init( int texWidth, int texHeight )
 
 	fs_path = Misc::find_file( "raycast.fs.glsl", search_paths, "shader", search_relpaths, true, verbosity );
 	vs_path = Misc::find_file( "raycast.vs.glsl", search_paths, "shader", search_relpaths, true, verbosity );
-	lut_path= Misc::find_file( "raycast_default_lookup.table", 
+	lut_path= Misc::find_file( "raycast_default_lookup.xml", 
 		                                          search_paths, "shader", search_relpaths, true, verbosity );
 	cout << "Using raycast fragment shader found in .\\" << fs_path << endl;
 	if( fs_path.compare( vs_path ) != 0 )
@@ -339,7 +339,7 @@ bool VolumeRendererRaycast::init( int texWidth, int texHeight )
 	// --- Setup default lookup table ---
 
 	if( lut_path.empty() )
-		lut_path = "shader/raycast_default_lookup.table";
+		lut_path = "shader/raycast_default_lookup.xml";
 
 	if( !m_default_lut.read( lut_path.c_str() ) )
 	{
