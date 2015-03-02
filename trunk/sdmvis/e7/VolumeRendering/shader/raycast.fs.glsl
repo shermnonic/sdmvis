@@ -129,8 +129,7 @@ const vec3 voxelsizei = vec3( <__opt_WIDTH__>,
                               <__opt_HEIGHT__>, 
 							  <__opt_DEPTH__> );					 
 
-// stepsize for ray traversal                FIXME: should be a user parameter
-//const float stepsize = 0.005; //0.0005; // 0.001
+// stepsize for ray traversal
 uniform float stepsize;
 // number of isosurface refinement steps
 const int refinement_steps = 3;
@@ -147,6 +146,66 @@ const float mat_ka  = 0.23;  // ambient  coeff.
 const float mat_ks  = 0.06;  // specular coeff.
 const float mat_kd  = 0.7;   // diffuse  coeff.
 #endif
+
+
+//------------------------------------------------------------------------------
+// Transfer function and opacity correction
+
+// 1 - online opacity correction  & pre-multiplied alpha (like GPU Gems)
+// 2 - offline opacity correction & pre-multiplied alpha (like GPU Gems)
+// 3 - offline opacity correction (VTK style, allows usage of Paraview XML presets)
+#define OPACITY_CORRECTION 3
+
+// Apply transfer function
+vec4 transfer( float scalar )
+{
+	vec4 src = texture1D( luttex, scalar );
+	
+  #if   OPACITY_CORRECTION == 1
+	// Opacity correction
+	src.a = (1.0 - pow(1.0 - src.a, SR0/SR));
+	
+	// Opacity weighted color [Wittenbrink1998]
+	src.rgb *= src.a;
+	
+  #elif OPACITY_CORRECTION == 2
+	// Nothing to be done here, everything pre-computed
+	
+  #elif OPACITY_CORRECTION == 3	
+	// VTK custom adaption (opacities somehow corrected, but no pre-mult.alpha)
+	src.a *= 128.0;
+	src.a = clamp(src.a,0.0,1.0);
+	src.rgb *= src.a;	
+  #endif
+	
+	return src;
+}
+
+// Undo transfer function mapping (e.g. for display of the original color map)
+vec4 untransfer( float scalar )
+{
+	vec4 lut = texture1D( luttex, scalar );
+	
+  #if   OPACITY_CORRECTION == 1
+	// Linear transfer function (sample rate corrected on-line above)
+	float opacity = lut.a;
+	vec3 color = lut.rgb;
+	
+  #elif OPACITY_CORRECTION == 2
+	// Undo pre-computed opacity correction
+	float opacity = 1.0 - pow(1.0 - lut.a,SR/SR0); // GPUGems
+	// Undo pre-multiplied alpha
+	vec3 color = lut.rgb / lut.a;
+	
+  #elif OPACITY_CORRECTION == 3
+	// Undo pre-computed opacity correction
+	float opacity = 1.0 - pow(1.0 - lut.a,1.0/stepsize); // VTK
+	// No pre-multiplied alpha
+	vec3 color = lut.rgb;	
+  #endif	
+
+	return vec4( color, opacity );
+}
 
 #if WARP == 1
 //------------------------------------------------------------------------------
@@ -609,8 +668,6 @@ float depth_to_z( float d, float a, float b ) { return b * (1.0 / (d - a)); }
 //------------------------------------------------------------------------------
 void main(void)
 {
-	//stepsize = 0.0025;
-	
 	// ray start & end position
 	vec3 ray_in  = texture2D( fronttex, tc ).xyz;
 	vec3 ray_out = texture2D( backtex , tc ).xyz;
@@ -639,7 +696,9 @@ void main(void)
 	vec3 n; 
 	
 	// ray traversal
-	for( int i=0; i < int(1.0/float(stepsize))+50; ++i ) // BUBUG: ray end not correct?
+	float samplingrate = 1.0/float(stepsize);
+	int numsteps = int(samplingrate * 1.4142135); // *sqrt(2)
+	for( int i=0; i < numsteps; ++i )
 	{
 		// ray termination
 #ifdef MIDA_TEST
@@ -649,7 +708,7 @@ void main(void)
 		}
 #else
 	#ifndef DEBUG
-		if( length(ray) >= len || dst.a >= 0.99 ) break;
+		if( length(ray) >= len || dst.a >= (1.0-0.0039) ) break; // 1/255=0.0039
 	#else			
 		if( length(ray) >= len ) 
 		{ 
@@ -664,7 +723,6 @@ void main(void)
 		}
 	#endif
 #endif
-		// TODO: transfer funcion
 		float intensity = get_volume_scalar( ray_in + ray );
 			// get_volume_scalar() implicitly computes g_displacement		
 		
@@ -733,7 +791,7 @@ void main(void)
 			break;
 		}
 #else	
-	#if 1
+	#if 0
 		// Hard-coded TF to achieve nice results on mandible datasets	
 		intensity *= (1.5 - 100.0*stepsize);
 		vec4 src = vec4(intensity);
@@ -741,7 +799,8 @@ void main(void)
 		src.rgb *= src.a; // Pre-multiplied alpha
 	#else	
 		// Transfer function
-		vec4 src = alpha_scale*100.0*texture1D( luttex, intensity );	
+		vec4 src = transfer( intensity );
+		//vec4 src = alpha_scale*100.0*texture1D( luttex, intensity );	
 	#endif
 		
 		// Normal is required in every case
@@ -789,7 +848,10 @@ void main(void)
 		dst.a   = dst.a   + (1-dst.a)*src.a;
 	#else
 		// front-to-back compositing (w/ pre-multiplied alpha)
-		dst = dst + (1.0 - dst.a) * src;
+		if( src.a > 0.0 )
+		{
+			dst = dst + (1.0 - dst.a) * src;
+		}
 		//dst = dst + pow((1.0 - dst.a),abs(get_jacobian(ray_in+ray+g_displacement))) * src;
 	#endif // LIGHTING		
   #endif // MIP
@@ -797,7 +859,7 @@ void main(void)
 #endif
 		// advance ray position
 		ray += step;
-	}	
+	}
 
 	//------------------------------
 	//  Output fragments
