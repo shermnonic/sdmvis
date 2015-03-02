@@ -49,7 +49,7 @@
 // 2 - custom warp strength coloring (see code below)
 // 3 - fancy coloring (add displacement to phong color)
 //#define COLORMODE <__opt_COLORMODE__>
-#define COLORMODE 0
+#define COLORMODE 2
 
 // Non-polygonal isosurface rendering with Phong shading
 // and intersection refinement
@@ -374,7 +374,7 @@ vec3 reform_flavi_nose( vec3 x )
 					   0.0,       0.0,      0.0,      0.0  ));
 	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
 	//return 0.3*lambda0*wz*(-v); 
-	return 0.3*wz*v; 
+	return 0.5*wz*v; 
 }
 
 vec3 reform_flavi_teeth( vec3 x )
@@ -402,7 +402,7 @@ vec3 reform_flavi_teeth( vec3 x )
 
 vec3 get_warp2( vec3 x )
 {
-#define TEST 0
+#define TEST 3
 #if TEST==1
 	// TESTING ON-THE-FLY GROUP MEAN SHAPE COMPUTATION
 	
@@ -468,7 +468,14 @@ vec3 get_warp2( vec3 x )
 	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
 	return w*(-v); // + get_warp(x);
 #elif TEST==3
-	return reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x ) + get_warp( x );
+	//return reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x ) + get_warp( x );
+	if( lambda20 > 0.01 )
+	{
+		float w = 0.33*lambda20;
+		vec3 v = reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x );		
+		return  w*v + get_warp( x );
+	}
+	return get_warp( x );
 #elif TEST==4
 #else
 	return get_warp( x );
@@ -734,6 +741,19 @@ vec3 colorcode( vec3 disp )
 	return color;
 }
 
+vec3 colorcode2( vec3 x )
+{
+	// Color coding of displacement (some COLORMODE may require g_normal)
+  #if INTEGRATOR == 0
+	// Displacement field setting
+	return colorcode( g_displacement );
+  #else
+	// SVF Setting 
+	// Do not encode reformation but only initial velocity at x.
+	return colorcode( inverse_domain_transform(-get_warp(domain_transform(x+g_displacement))) );
+  #endif	
+}
+
 //------------------------------------------------------------------------------
 // Convert fragment depth value to eye space z and vice versa
 // where 
@@ -803,8 +823,8 @@ void main(void)
 		// Normal is required in every case
 		g_normal = get_normal(ray_in+ray+g_displacement);		
 		
-		// Color coding of displacement (COLORMODE may require g_normal)
-		vec3 color = colorcode( g_displacement );
+		// Color coding of displacement 
+		vec3 color = colorcode2( ray_in+ray );
 		
 #if ISOSURFACE == 1
 		if( intensity > isovalue )
@@ -832,7 +852,7 @@ void main(void)
 			
 			// update normal and color coding
 			g_normal = get_normal(ray_in+ray+g_displacement);
-			color = colorcode( g_displacement );
+			color = colorcode2( ray_in+ray );
 			
 			// shading
 			float li = phong( g_normal, -dir );
