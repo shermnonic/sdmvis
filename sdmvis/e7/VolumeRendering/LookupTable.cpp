@@ -5,6 +5,7 @@
 #include <exception>
 #include <cassert>
 #include <cctype> // for tolower()
+#include <cmath> // for pow()
 
 using namespace std;
 

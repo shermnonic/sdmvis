@@ -333,7 +333,7 @@ endif( MATLAB_FOUND )
 #-------------------
 set( sdmvis_MOC_HDRS
 	SDMVisMainWindow.h
-	SDMVISConfig.h
+	#SDMVISConfig.h
 	SDMVisVolumeRenderer.h
 	SDMVisInteractiveEditingOptionsWidget.h	
 	SDMTensorVisWidget.h
@@ -341,8 +341,8 @@ set( sdmvis_MOC_HDRS
 	BatchProcessingDialog.h
 	TraitDialog.h
 	DatasetWidget.h
-	plotWidget.h
-	plotView.h
+	PlotWidget.h
+	PlotView.h
 	CSVExporter.h
 	TraitSelectionWidget.h
 	ConfigGenerator.h
@@ -413,12 +413,12 @@ set( sdmvis_SRCS
 	TraitSelectionWidget.cpp
 	DatasetWidget.h
 	DatasetWidget.cpp
-	plotWidget.cpp
-	plotItem.cpp
-	plotView.cpp
-	plotWidget.h
-	plotItem.h
-	plotView.h
+	PlotWidget.cpp
+	PlotItem.cpp
+	PlotView.cpp
+	PlotWidget.h
+	PlotItem.h
+	PlotView.h
 	TraitComb.h
 	TraitComb.cpp
 	CSVExporter.h
