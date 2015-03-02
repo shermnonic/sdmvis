@@ -20,6 +20,8 @@
 // Max Hermann, March 22, 2010
 ///////////////////////////////////////////////////////////////////////////////
 
+#version 120
+
 // Debug modes:
 // 1 = debug ray termination (red=left volume, green=opacity>=threshold)
 // 2 = render ray length
@@ -47,7 +49,7 @@
 // 2 - custom warp strength coloring (see code below)
 // 3 - fancy coloring (add displacement to phong color)
 //#define COLORMODE <__opt_COLORMODE__>
-#define COLORMODE 0
+#define COLORMODE 2
 
 // Non-polygonal isosurface rendering with Phong shading
 // and intersection refinement
@@ -149,6 +151,14 @@ const float mat_kd  = 0.7;   // diffuse  coeff.
 
 
 //------------------------------------------------------------------------------
+// Globals
+
+vec3 g_displacement = vec3(0.0);
+
+vec3 g_normal;
+
+
+//------------------------------------------------------------------------------
 // Transfer function and opacity correction
 
 // 1 - online opacity correction  & pre-multiplied alpha (like GPU Gems)
@@ -159,7 +169,17 @@ const float mat_kd  = 0.7;   // diffuse  coeff.
 // Apply transfer function
 vec4 transfer( float scalar )
 {
+#if 0	
+	// Hard-coded TF to achieve nice results on mandible datasets	
+	intensity *= (1.5 - 100.0*stepsize);
+	vec4 src = vec4(intensity);
+	src.a *= alpha_scale;
+	src.rgb *= src.a; // Pre-multiplied alpha
+	return src;
+#else
+	// Use lookup table
 	vec4 src = texture1D( luttex, scalar );
+#endif	
 	
   #if   OPACITY_CORRECTION == 1
 	// Opacity correction
@@ -410,12 +430,12 @@ vec3 get_warp2( vec3 x )
 	vec3 v2 = L2[3].xyz + (L2*vec4(x-center,1.0)).xyz;
 	
 	// Blend log-demons and affine velocity
-	//return lambda0*wy*w1*(-v1) + lambda1*wy*w2*(-v2);
-	return wy*( w1*v1 + w2*(v2) ) + get_warp( x );
+	return lambda0*wy*w1*(-v1) + lambda1*wy*w2*(-v2);
+	//return wy*( w1*v1 + w2*(v2) ) + get_warp( x );
 #elif TEST==4
 	// TEST REFORMATION FLAVICOLLIS INCISOR
 	vec3 center = vec3(0.4,0.2,0.1875);		
-	float wz = window( -0.5,0.3,0.025, x.z );
+	float wz = window( -0.4,0.2,0.125, x.z );
 	float logt = 1.5*0.872664625997165;
 	mat4 L = transpose(mat4( // matrices are given column-major
 					   0.0,       0.0,      0.0,      0.0,
@@ -423,8 +443,8 @@ vec3 get_warp2( vec3 x )
 					   0.0,     -logt,      0.0,      0.0,
 					   0.0,       0.0,      0.0,      0.0  ));
 	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
-	//return lambda0*wz*(-v); 
-	return 0.5*wz*v + get_warp(x);
+	return 0.3*lambda0*wz*(-v); 
+	//return 0.5*wz*v + get_warp(x);
 #else
 	return get_warp( x );
 #endif
@@ -513,8 +533,6 @@ vec3 get_inverse_exp_warp( vec3 x )
 
 //------------------------------------------------------------------------------
 // Return scalar value for volume coordinate x
-vec3 g_displacement = vec3(0.0,0.0,0.0);
-
 #if WARP == 1
 vec3 get_inverse_displacement( vec3 x )
 {
@@ -658,6 +676,40 @@ float phong( vec3 n, vec3 eye )
 }
 
 //------------------------------------------------------------------------------
+// Color code displacement
+vec3 colorcode( vec3 disp )
+{
+	vec3 color = vec3(1.0);
+
+#if WARP == 1	
+	float disp_color_scale = 25.0 *1.75;
+	
+  #if   COLORMODE == 1	
+	// encode warp strength in R channel
+	float imp = length( disp*disp_color_scale );
+	imp = clamp( imp, 0.0, 0.9 ); 
+	color = vec3(.15+1.6*imp,0.8,1.3-imp);
+	
+  #elif COLORMODE == 2
+	// project displacement vector onto surface normal
+	// sign indicates if warp deforms surface in- or outwards
+	float imp = dot( disp*disp_color_scale, g_normal );
+	float imp_pos = clamp( imp, 0.0, 1.0 );
+	float imp_neg = -clamp( imp, -1.0, 0.0 );
+	// grey = no change
+	// red  = outwards warp
+	// blue = inwards warp	
+	//vec3 cpos = mix(vec3(1.0),vec3(1.0,0.0,0.0),imp_pos);
+	//vec3 cneg = mix(vec3(1.0),vec3(0.0,0.0,1.0),imp_pos);
+	//color = mix( vec3(0.0,0.0,1.0), vec3(1.0,0.0,0.0), clamp(imp+0.5,0.0,1.0) );
+	color = 2.0*vec3( .5+.5*(imp_neg-imp_pos), .5-.25*max(imp_pos,imp_neg), .5+.5*(imp_pos-imp_neg) );	
+  #endif
+#endif
+	
+	return color;
+}
+
+//------------------------------------------------------------------------------
 // Convert fragment depth value to eye space z and vice versa
 // where 
 //   a = zFar / (zFar - zNear)
@@ -692,9 +744,6 @@ void main(void)
 	alpha_scale = 0.01;
 #endif
 
-	// For simpler implementation we allways compute a normal
-	vec3 n; 
-	
 	// ray traversal
 	float samplingrate = 1.0/float(stepsize);
 	int numsteps = int(samplingrate * 1.4142135); // *sqrt(2)
@@ -723,8 +772,14 @@ void main(void)
 		}
 	#endif
 #endif
+		// Note: get_volume_scalar() implicitly computes g_displacement
 		float intensity = get_volume_scalar( ray_in + ray );
-			// get_volume_scalar() implicitly computes g_displacement		
+		
+		// Normal is required in every case
+		g_normal = get_normal(ray_in+ray+g_displacement);		
+		
+		// Color coding of displacement (COLORMODE may require g_normal)
+		vec3 color = colorcode( g_displacement );
 		
 #if ISOSURFACE == 1
 		if( intensity > isovalue )
@@ -749,62 +804,29 @@ void main(void)
 				// half stepsize
 				ministep *= .5;
 			}
-
-			n = get_normal(ray_in+ray+g_displacement);
-			float li = phong( n, -dir );
+			
+			// update normal and color coding
+			g_normal = get_normal(ray_in+ray+g_displacement);
+			color = colorcode( g_displacement );
+			
+			// shading
+			float li = phong( g_normal, -dir );
 		
 	#if SILHOUETTE == 1
-			if( abs(dot(n,-dir)) < 0.6 )
-				dst.rgb = vec3(0,0,0);
-			else
-				dst.rgb = vec3(1,1,1);
-	#else
-		#if WARP == 1
-			vec3 disp = g_displacement; //get_warp( ray_in+ray );
-			float disp_color_scale = 25.0 *1.75;
-		  #if COLORMODE == 1
-			// encode warp strength in R channel
-			float imp = length( disp*disp_color_scale );
-			imp = clamp( imp, 0.0, 0.9 ); 
-			dst.rgb = vec3(.15+1.6*imp,0.8,1.3-imp) * li;
-		  #elif COLORMODE == 2
-			// project displacement vector onto surface normal
-			// sign indicates if warp deforms surface in- or outwards
-			float imp = dot( disp*disp_color_scale, n );
-			float imp_pos = imp;
-			float imp_neg = imp;
-			clamp( imp_pos, 0.0, 1.0 );
-			clamp( imp_neg, -1.0, 0.0 );
-			imp_neg = -imp_neg;
-			// grey = no change
-			// red  = outwards warp
-			// blue = inwards warp
-			dst.rgb = 2*vec3( .5+.5*imp_pos, .5, .5+.5*imp_neg ) * li;
-		  #else // COLORMODE == 0
-		    dst.rgb = vec3(1.0,1.0,1.0) * li;
-		  #endif
-		#else
-			dst.rgb = vec3(1.0,1.0,1.0) * li;
-		#endif
+			float edge = smoothstep( 0.5, 0.6, abs(dot(g_normal,-dir)) );
+			dst.rgb = mix(vec3(0.0),vec3(1.0),edge);
+	#else			
+			dst.rgb = color*li;
 	#endif
 			dst.a   = 1.0;
 			break;
 		}
 #else	
-	#if 0
-		// Hard-coded TF to achieve nice results on mandible datasets	
-		intensity *= (1.5 - 100.0*stepsize);
-		vec4 src = vec4(intensity);
-		src.a *= alpha_scale;
-		src.rgb *= src.a; // Pre-multiplied alpha
-	#else	
 		// Transfer function
 		vec4 src = transfer( intensity );
-		//vec4 src = alpha_scale*100.0*texture1D( luttex, intensity );	
-	#endif
 		
-		// Normal is required in every case
-		n = get_normal(ray_in+ray+g_displacement);
+		// Consider color coding also for DVR
+		src.rgb *= color;		
 
   #if MIP == 1
 	 #ifdef MIDA_TEST
@@ -817,7 +839,7 @@ void main(void)
 		}
 
 		#ifdef LIGHTING
-			float li = phong( n, -dir );
+			float li = phong( g_normal, -dir );
 		#else
 			float li = 1.0;
 		#endif
@@ -839,7 +861,7 @@ void main(void)
 		{
 			mip = mipvalue;
 		#ifdef LIGHTING
-			float li = phong( n, -dir );
+			float li = phong( g_normal, -dir );
 		#else
 			float li = 1.0;
 		#endif		
@@ -852,7 +874,7 @@ void main(void)
 	 #endif
   #else
 	#ifdef LIGHTING
-		float li = phong( n, -dir );
+		float li = phong( g_normal, -dir );
 		dst.rgb = dst.rgb + (1-dst.a)*src.rgb * li;
 		dst.a   = dst.a   + (1-dst.a)*src.a;
 	#else
@@ -878,7 +900,7 @@ void main(void)
   #if      OUTPUT1 == 1		             // --- Output ray termination position
 	gl_FragData[0] = vec4( ray_in + ray, dst.a );
   #elif    OUTPUT1 == 2	                 // --- Output normal
-	gl_FragData[0] = vec4( n           , dst.a );
+	gl_FragData[0] = vec4( g_normal    , dst.a );
   #elif    OUTPUT1 == 3	                 // --- Output ray start location
 	gl_FragData[0] = vec4( ray_in      , dst.a );
   #elif    OUTPUT1 == 4	                 // --- Output ray end location
@@ -892,7 +914,7 @@ void main(void)
   #if      OUTPUT2 == 1		             // --- Output ray termination position
 	gl_FragData[1] = vec4( ray_in + ray, dst.a );
   #elif    OUTPUT2 == 2	                 // --- Output normal
-	gl_FragData[1] = vec4( n           , dst.a );
+	gl_FragData[1] = vec4( g_normal    , dst.a );
   #elif    OUTPUT2 == 3	                 // --- Output ray start location
 	gl_FragData[1] = vec4( ray_in      , dst.a );
   #elif    OUTPUT2 == 4	                 // --- Output ray end location
@@ -906,7 +928,7 @@ void main(void)
   #if      OUTPUT3 == 1		             // --- Output ray termination position
 	gl_FragData[2] = vec4( ray_in + ray, dst.a );
   #elif    OUTPUT3 == 2	                 // --- Output normal
-	gl_FragData[2] = vec4( n           , dst.a );
+	gl_FragData[2] = vec4( g_normal    , dst.a );
   #elif    OUTPUT3 == 3	                 // --- Output ray start location
 	gl_FragData[2] = vec4( ray_in      , dst.a );
   #elif    OUTPUT3 == 4	                 // --- Output ray end location
@@ -920,7 +942,7 @@ void main(void)
   #if      OUTPUT4 == 1		             // --- Output ray termination position
 	gl_FragData[3] = vec4( ray_in + ray, dst.a );
   #elif    OUTPUT4 == 2	                 // --- Output normal
-	gl_FragData[3] = vec4( n           , dst.a );
+	gl_FragData[3] = vec4( g_normal    , dst.a );
   #elif    OUTPUT4 == 3	                 // --- Output ray start location
 	gl_FragData[3] = vec4( ray_in      , dst.a );
   #elif    OUTPUT4 == 4	                 // --- Output ray end location
@@ -934,7 +956,7 @@ void main(void)
   #if      OUTPUT5 == 1		             // --- Output ray termination position
 	gl_FragData[4] = vec4( ray_in + ray, dst.a );
   #elif    OUTPUT5 == 2	                 // --- Output normal
-	gl_FragData[4] = vec4( n           , dst.a );
+	gl_FragData[4] = vec4( g_normal    , dst.a );
   #elif    OUTPUT5 == 3	                 // --- Output ray start location
 	gl_FragData[4] = vec4( ray_in      , dst.a );
   #elif    OUTPUT5 == 4	                 // --- Output ray end location
