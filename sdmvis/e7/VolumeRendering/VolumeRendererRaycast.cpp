@@ -164,9 +164,6 @@ float VolumeRendererRaycast::getLambda( int i ) const
 void  VolumeRendererRaycast::setAlphaScale( float s )
 {
 	m_raycast_shader.set_alpha_scale( s );
-#if 1
-	std::cout << "VolumeRendererRaycast alpha_scale = " << s << std::endl;
-#endif
 }
 
 float VolumeRendererRaycast::getAlphaScale() const

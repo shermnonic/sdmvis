@@ -462,13 +462,11 @@ SDMVisVolumeRenderer::SDMVisVolumeRenderer( QWidget* parent, const QGLWidget* sh
 	// Rendering actions
 
 	QAction* actReinitShader = new QAction( tr("&Reinit shader"), this );
-	actReinitShader->setShortcut( tr("Ctrl+R") );
 	actReinitShader->setStatusTip( tr("Force reload of raycast GLSL shader used"
 		                              " in direct volume rendering.") );
 	connect( actReinitShader, SIGNAL(triggered()), this, SLOT(reinitShader()) );
 
 	QAction* actToggleOverlay = new QAction( tr("Show &info overlay"), this );
-	actToggleOverlay->setShortcut( tr("Ctrl+I") );
 	actToggleOverlay->setCheckable( true );
 	connect( actToggleOverlay, SIGNAL(toggled(bool)), this, SLOT(toggleOverlay(bool)) );
 	actToggleOverlay->setChecked( true );
@@ -487,8 +485,6 @@ SDMVisVolumeRenderer::SDMVisVolumeRenderer( QWidget* parent, const QGLWidget* sh
 	QAction* actOffscreen = new QAction( tr("Offscreen rendering"), this );	
 	QAction* actStopAnim  = new QAction( tr("Stop render update" ), this );
 	QAction* actStartAnim = new QAction( tr("Start render update"), this );	
-	actStopAnim ->setShortcut( tr("Ctrl+A") );
-	actStartAnim->setShortcut( tr("Ctrl+S") );
 	actOffscreen->setCheckable( true );
 	actOffscreen->setChecked( m_vren->getOffscreen() );
 	connect( actOffscreen, SIGNAL(toggled(bool)), this, SLOT(toggleOffscreen(bool)) );
@@ -514,6 +510,19 @@ SDMVisVolumeRenderer::SDMVisVolumeRenderer( QWidget* parent, const QGLWidget* sh
 	actShowDebugInfo->setChecked( false );
 	connect( actShowDebugInfo, SIGNAL(toggled(bool)), this, SLOT(toggleDebug(bool)) );
 
+
+	// WORKAROUND: Keyboard shortcuts can only be assigned once!
+	static bool keyboardShortcutAssigned = false;
+	if( !keyboardShortcutAssigned )
+	{
+		// Assign shortcuts for first instance calling this code here
+		actReinitShader->setShortcut( tr("Ctrl+R") );
+		actToggleOverlay->setShortcut( tr("Ctrl+I") );
+		actStopAnim ->setShortcut( tr("Ctrl+A") );
+		actStartAnim->setShortcut( tr("Ctrl+S") );
+
+		keyboardShortcutAssigned = true;
+	}
 
 	// Mode action group
 
@@ -991,7 +1000,7 @@ void SDMVisVolumeRenderer::resizeGL( int w, int h )
 
 	m_trackball2.setViewSize( w, h );
 
-	qDebug() << "SDMVisVolumeRenderer resized to " << w << " x " << h;
+	//qDebug() << "SDMVisVolumeRenderer resized to " << w << " x " << h;
 }
 
 void SDMVisVolumeRenderer::invokeRenderUpdate()
@@ -1905,6 +1914,8 @@ try_again:
 	// success reloading shader
 	setInitialized( true );
 	startAnimation();
+	// force render
+	updateGL();
 	return true;
 }
 
