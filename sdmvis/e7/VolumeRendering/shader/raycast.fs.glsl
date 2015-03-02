@@ -822,23 +822,32 @@ void main(void)
 			float li = 1.0;
 		#endif
 
+		// front-to-back compositing (w/ pre-multiplied alpha)
+		if( src.a >= 0.0039 )
+		{
+			dst = dst + (1.0 - dst.a) * src;
+		}
 		// pre-multiplied alpha
 		//dst.rgb = beta*src.rgb + (1 - beta*src.a) * intensity;
 		//dst.a   = beta*src.a   + (1 - beta*src.a);
-		dst = beta*dst + (1 - beta*dst.a) * src;
+		//dst = beta*dst + (1 - beta*dst.a) * src;
 		
 	 #else
 		// MIP
-		if(intensity > mip) 
+		float mipvalue = src.a; // was: intensity
+		if(mipvalue > mip && src.a >= 0.0039) 
 		{
-			mip = intensity;
+			mip = mipvalue;
 		#ifdef LIGHTING
 			float li = phong( n, -dir );
 		#else
 			float li = 1.0;
-		#endif
-			dst.rgb = intensity*li;
-			dst.a   = sqrt(intensity)*(1+alpha_scale);  // hack (see break condition)
+		#endif		
+			dst = src*li;
+			
+			// was:	
+			//dst.rgb = intensity*li;
+			//dst.a   = sqrt(intensity)*(1+alpha_scale);  // hack (see break condition)
 		}
 	 #endif
   #else
@@ -848,7 +857,7 @@ void main(void)
 		dst.a   = dst.a   + (1-dst.a)*src.a;
 	#else
 		// front-to-back compositing (w/ pre-multiplied alpha)
-		if( src.a > 0.0 )
+		if( src.a >= 0.0039 )
 		{
 			dst = dst + (1.0 - dst.a) * src;
 		}
