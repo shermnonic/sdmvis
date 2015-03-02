@@ -1206,6 +1206,7 @@ void SDMVisVolumeRenderer::drawBackground()
 {
 	// background
 	glClearColor( 0,0,0,0 );
+	/* --> We are alpha blending with background for all raycaster modes!
 	if( this->m_vren->getRenderMode() == RaycastShader::RenderDirect 
 		|| this->m_vren->getRenderMode() == RaycastShader::RenderMIP 
 	  )
@@ -1213,6 +1214,7 @@ void SDMVisVolumeRenderer::drawBackground()
 		glClear( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT );
 	}
 	else
+	*/
 	{
 		glClear( GL_DEPTH_BUFFER_BIT ); // | GL_COLOR_BUFFER_BIT
 		drawBackgroundGradient();
@@ -1258,8 +1260,14 @@ void SDMVisVolumeRenderer::paintGL()
 	//return;
 #endif
 
-	// raycast
+	// raycast (blend result with background)
+
+	glEnable( GL_BLEND );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
 	m_vren->render();
+
+	glDisable( GL_BLEND );
 
 	// ray-picking
 	//static bool validDeform = false;
