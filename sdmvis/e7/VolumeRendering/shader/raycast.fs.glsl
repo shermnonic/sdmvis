@@ -134,7 +134,7 @@ const vec3 voxelsizei = vec3( <__opt_WIDTH__>,
 // stepsize for ray traversal
 uniform float stepsize;
 // number of isosurface refinement steps
-const int refinement_steps = 3;
+const int refinement_steps = 5;
 
 // light/material definition                 FIXME: should be adjustable (use GL_LIGHT0?)
 const vec3  light_pos = vec3(1,1,1);
