@@ -40,7 +40,7 @@ std::string get_executable_path()
 	char exepath[4096];
 	char tmp[32];
 	sprintf( tmp, "/proc/%d/exe", getpid() );
-	int n = std::min( readlink(tmp, exepath, 4096), 4095 );
+    int n = std::min( (int)readlink(tmp, exepath, 4096), 4095 );
 	if( n >= 0 )
 		exepath[n] = '\0';
 	exepath_s = std::string(exepath);

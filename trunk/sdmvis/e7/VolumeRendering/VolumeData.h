@@ -215,7 +215,7 @@ protected:
 
 		if( m_verbosity > 2 ) 
 			std::cout << "Volume buffer address = 0x" 
-				 << std::hex << (int)m_buffer << std::dec << "\n";
+                 << std::hex << m_buffer << std::dec << "\n";
 	}
 
 private:
@@ -530,7 +530,7 @@ T* VolumeDataLoaderRAW<T>::loadRAW( const char* filename,
 		return 0;
 	}
 	
-	if( verbosity > 2 ) cout << "Buffer address=0x" << std::hex << (int)buffer << std::dec << endl;	
+    if( verbosity > 2 ) cout << "Buffer address=0x" << std::hex << buffer << std::dec << endl;
 	if( verbosity > 2 ) cout << "Read data as one block..."; cout.flush();
 
 	// read data as block
