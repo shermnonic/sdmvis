@@ -2,6 +2,7 @@
 #include "RaycastShader.h"
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <cassert>
 
 //linux/ unix specific includes
@@ -45,6 +46,22 @@ std::string string_from_number( int i )
 }
 
 //------------------------------------------------------------------------------
+
+void writeToDisk( const char* filename, std::string const& s )
+{
+	using namespace std;
+	ofstream f( filename );
+	if( f.is_open() )
+	{
+		f << s;
+		f.close();
+	}
+	else
+	{
+		cerr << "Could not create file \"" << filename << "\"!" << endl;
+	}
+}
+
 bool RaycastShader::init( std::string fs_path, std::string vs_path )
 {
 	if( fs_path.empty() )
@@ -113,9 +130,15 @@ bool RaycastShader::init( std::string fs_path, std::string vs_path )
 				<< "    uniform float lambda"       << i << ";\n";
 
 #define RAYCASTSHADER_UGLY_HACK_TO_REUSE_LAST_UNIFORM_COEFFICIENT_OTHERWISE
-#ifdef RAYCASTSHADER_UGLY_HACK_TO_REUSE_LAST_UNIFORM_COEFFICIENT_OTHERWISE
-			// Skip displacement code for last parameter
-			if( i >= m_num_warps-1 ) continue;
+#ifdef RAYCASTSHADER_UGLY_HACK_TO_REUSE_LAST_UNIFORM_COEFFICIENT_OTHERWISE			
+			if( i >= m_num_warps-1 ) 
+			{
+				// Assign last uniform to special user variable for conenience
+				ss_warp_uniforms
+					<< "    float lambdaUser = lambda" << i << ";\n";
+				// Skip displacement code for last parameter
+				continue;
+			}
 #endif
 			ss_warp_routine 
 				<< "    if( abs(lambda"<<i<<")>eps ) disp += "
@@ -138,6 +161,8 @@ bool RaycastShader::init( std::string fs_path, std::string vs_path )
 	if( !m_shader->load( vs, fs ) )
 	{
 		cerr << "Error: Compilation of Raycast GLSL shader failed!" << endl;
+		writeToDisk( "temp-raycast-vs.glsl", vs );
+		writeToDisk( "temp-raycast-fs.glsl", fs );
 		return false;
 	}
 

@@ -22,6 +22,19 @@
 
 #version 120
 
+
+// Hardcoded reformations:
+// 1 = Mandibles carni/omni w/mus, interpolation between carni/omni mean shapes
+// 3 = Flavicollis skull reformation
+#define REFORMATION_TEST 0
+
+// Uncomment to enlarge visible domain by a factor of 2 e.g. for reformation
+#if REFORMATION_TEST > 1
+	#define ENLARGE_DOMAIN_FOR_REFORMATION
+#endif
+
+
+
 // Debug modes:
 // 1 = debug ray termination (red=left volume, green=opacity>=threshold)
 // 2 = render ray length
@@ -47,9 +60,13 @@
 // 0 - plain white
 // 1 - color warp strength in Red channel
 // 2 - custom warp strength coloring (see code below)
-// 3 - fancy coloring (add displacement to phong color)
+// 4 - reserved for hard coded tests
 //#define COLORMODE <__opt_COLORMODE__>
-#define COLORMODE 2
+#if REFORMATION_TEST == 1
+	#define COLORMODE 4
+#else
+	#define COLORMODE 2
+#endif
 
 // Non-polygonal isosurface rendering with Phong shading
 // and intersection refinement
@@ -102,7 +119,35 @@ varying vec4 color;
 varying vec2 tc;
 #if WARP==1
 
+
+#if REFORMATION_TEST == 1
+	#define TEST_HIERARCHY
+#endif
+#ifndef TEST_HIERARCHY
 <__auto_warp_uniforms__>
+#else
+uniform float lambda16;
+float lambda0, lambda1, lambda2, lambda3, lambda4, lambda5, lambda6, lambda7,
+      lambda8, lambda9, lambda10, lambda11, lambda12, lambda13, lambda14, 
+	  lambda15 ;
+uniform sampler3D warpmode0;
+uniform sampler3D warpmode1;
+uniform sampler3D warpmode2;
+uniform sampler3D warpmode3;
+uniform sampler3D warpmode4;
+uniform sampler3D warpmode5;
+uniform sampler3D warpmode6;
+uniform sampler3D warpmode7;
+uniform sampler3D warpmode8;
+uniform sampler3D warpmode9;
+uniform sampler3D warpmode10;
+uniform sampler3D warpmode11;
+uniform sampler3D warpmode12;
+uniform sampler3D warpmode13;
+uniform sampler3D warpmode14;
+uniform sampler3D warpmode15;
+#endif
+
 
   #if MULTIWARP==1
   #else
@@ -402,58 +447,57 @@ vec3 reform_flavi_teeth( vec3 x )
 
 vec3 get_warp2( vec3 x )
 {
-#define TEST 3
-#if TEST==1
+#if REFORMATION_TEST==1
 	// TESTING ON-THE-FLY GROUP MEAN SHAPE COMPUTATION
 	
-	float l = lambda0;
-	
-	// Sum v_i belonging not to group of interest
-	lambda0=0.0;
-	lambda1=0.0;
-	lambda2=0.0;
-	lambda3=0.0;
-	lambda4=1.0;
-	lambda5=1.0;
-	lambda6=1.0;
-	lambda7=1.0;
-	lambda8=0.0;
-	lambda9=0.0;
-	lambda10=1.0;
-	lambda11=1.0;
-	lambda12=1.0;
-	lambda13=0.0;
-	lambda14=0.0;
-	lambda15=1.0;
-	vec3 va = (1.0/8.0)*get_warp( x );
-	
-	// Sum v_i belonging not to group of interest
-	lambda0=1.0;
-	lambda1=1.0;
-	lambda2=1.0;
-	lambda3=1.0;
-	lambda4=0.0;
-	lambda5=0.0;
-	lambda6=0.0;
-	lambda7=0.0;
-	lambda8=1.0;
-	lambda9=1.0;
-	lambda10=0.0;
-	lambda11=0.0;
-	lambda12=0.0;
-	lambda13=1.0;
-	lambda14=1.0;
-	lambda15=0.0;
-	vec3 vb = (1.0/8.0)*get_warp( x );
-	
-	lambda0 = l;
-	vec3 foo;
-	if( l < 0 )
-		foo = -l*va;
-	else
-		foo = l*vb;
-	return foo;
-#elif TEST==2
+	float l = lambda16; // / 3.0;
+
+	if( l < 0.0 )
+	{
+		// Sum v_i belonging not to group of interest
+		lambda0=0.0;
+		lambda1=0.0;
+		lambda2=0.0;
+		lambda3=0.0;
+		lambda4=1.0;
+		lambda5=1.0;
+		lambda6=1.0;
+		lambda7=1.0;
+		lambda8=0.0;
+		lambda9=0.0;
+		lambda10=1.0;
+		lambda11=1.0;
+		lambda12=1.0;
+		lambda13=0.0;
+		lambda14=0.0;
+		lambda15=1.0;
+		vec3 va = (1.0/8.0)*get_warp( x );
+		return -l*va;
+	}
+	else if( l > 0.0 )
+	{	
+		// Sum v_i belonging not to group of interest
+		lambda0=1.0;
+		lambda1=1.0;
+		lambda2=1.0;
+		lambda3=1.0;
+		lambda4=0.0;
+		lambda5=0.0;
+		lambda6=0.0;
+		lambda7=0.0;
+		lambda8=1.0;
+		lambda9=1.0;
+		lambda10=0.0;
+		lambda11=0.0;
+		lambda12=0.0;
+		lambda13=1.0;
+		lambda14=1.0;
+		lambda15=0.0;
+		vec3 vb = (1.0/8.0)*get_warp( x );
+		return l*vb;
+	}
+	return vec3(0.0);	
+#elif REFORMATION_TEST==2
 	// Log affine transformation (evaluated off-line)
     // Central rotation around x
 	vec3 center = vec3(0.6,0.7,0.375);		
@@ -466,17 +510,17 @@ vec3 get_warp2( vec3 x )
 					   0.0,     -logt,      0.0,      0.0,
 					   0.0,       0.0,      0.0,      0.0  ));
 	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
-	return w*(-v); // + get_warp(x);
-#elif TEST==3
+	return lambda0*w*(-v); // + get_warp(x);
+#elif REFORMATION_TEST==3
 	//return reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x ) + get_warp( x );
-	if( lambda20 > 0.01 )
+	if( lambdaUser > 0.01 )
 	{
-		float w = 0.33*lambda20;
+		float w = 0.33*lambdaUser;
 		vec3 v = reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x );		
 		return  w*v + get_warp( x );
 	}
 	return get_warp( x );
-#elif TEST==4
+#elif REFORMATION_TEST==4
 #else
 	return get_warp( x );
 #endif
@@ -578,14 +622,20 @@ vec3 get_inverse_displacement( vec3 x )
 
 vec3 domain_transform( vec3 x )
 {
-	//return x;
+#ifdef ENLARGE_DOMAIN_FOR_REFORMATION
 	return 2.0*x - vec3(0.5);	
+#else
+	return x;
+#endif
 }
 
 vec3 inverse_domain_transform( vec3 y )
 {
-	//return (y + vec3(0.5)) * 0.5;
+#ifdef ENLARGE_DOMAIN_FOR_REFORMATION
 	return y * 0.5;
+#else
+	return y;
+#endif
 }
 
 float get_volume_scalar( vec3 x )
@@ -735,6 +785,14 @@ vec3 colorcode( vec3 disp )
 	//vec3 cneg = mix(vec3(1.0),vec3(0.0,0.0,1.0),imp_pos);
 	//color = mix( vec3(0.0,0.0,1.0), vec3(1.0,0.0,0.0), clamp(imp+0.5,0.0,1.0) );
 	color = 2.0*vec3( .5+.5*(imp_neg-imp_pos), .5-.25*max(imp_pos,imp_neg), .5+.5*(imp_pos-imp_neg) );	
+
+  #elif COLORMODE == 4
+	// two-group colouring
+	float l = lambda16 / 3.0; // soft group assignment in [-3,3]
+	float a = 0.5 + sign(l)*clamp(0.5*abs(l),0.0,0.5);
+	vec3 col1 = vec3(0.3,1.0,0.3);
+	vec3 col2 = vec3(1.0,0.3,1.0);
+	color = mix( col1, col2, a );
   #endif
 #endif
 	
