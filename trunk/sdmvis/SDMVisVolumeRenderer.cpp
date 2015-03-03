@@ -2579,7 +2579,7 @@ void SDMVisVolumeRenderer::changeWarpAnimationWarp()
 	bool ok;
 	int i = QInputDialog::getInteger( this, tr("Change warp to animate"),
 				tr("Warp index:"),
-				m_animWarp, 0, 4, 1, &ok );
+				m_animWarp, 0, 100, 1, &ok );
 	if( ok )
 		m_animWarp = i;
 }
