@@ -2588,7 +2588,11 @@ void SDMVisVolumeRenderer::changeWarpAnimationWarp()
 
 void SDMVisVolumeRenderer::setLOD( int level )
 {
+#if 1
+	m_vren->setOffscreenPreviewQuality( level == FastRendering );
+#else
 	m_vren->setOffscreen( level == FastRendering );
+#endif
 	if( level == QualityRendering )
 	{
 		updateGL();

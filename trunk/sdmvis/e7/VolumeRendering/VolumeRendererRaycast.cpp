@@ -16,6 +16,7 @@ using namespace GL;
 
 VolumeRendererRaycast::VolumeRendererRaycast()
 : m_verbosity(3)
+, m_offscreenPreviewQuality(false)
 , m_meanwarp(NULL)
 , m_offscreen(true)
 , m_debug(false)
@@ -222,6 +223,7 @@ void VolumeRendererRaycast::setOffscreenTextureSize( int width, int height )
 	m_front.Image(0, internalFormat, width,height, 0, GL_RGBA, GL_FLOAT, NULL );
 	m_back .Image(0, internalFormat, width,height, 0, GL_RGBA, GL_FLOAT, NULL );
 	m_vren .Image(0, internalFormat, width,height, 0, GL_RGBA, GL_FLOAT, NULL );
+	m_vrenlq.Image(0, internalFormat, width/2,height/2, 0, GL_RGBA, GL_FLOAT, NULL );
 
 #ifdef VOLUMERENDERERRAYCAST_PICKING
 	// Picking texture has fixed size 1x1
@@ -403,6 +405,7 @@ bool VolumeRendererRaycast::createTextures( int texWidth, int texHeight )
 	if(     !m_front      .Create(GL_TEXTURE_2D) 
 		|| 	!m_back       .Create(GL_TEXTURE_2D) 
 		||	!m_vren       .Create(GL_TEXTURE_2D) 
+		||  !m_vrenlq     .Create(GL_TEXTURE_2D)
 		||  !m_lut_tex    .Create(GL_TEXTURE_1D)
 		)
 	{
@@ -421,6 +424,7 @@ void VolumeRendererRaycast::destroyTextures()
 	m_front      .Destroy();
 	m_back       .Destroy();
 	m_vren       .Destroy();
+	m_vrenlq     .Destroy();
 	m_lut_tex    .Destroy();
 #ifdef VOLUMERENDERERRAYCAST_PICKING
 	for( int i=0; i < NumPickOutputs; i++ )	
@@ -760,7 +764,7 @@ void VolumeRendererRaycast::renderRaycast( RenderInfo ri, RaycastShader& shader,
 		{
 			reshape_ortho( ri.viewWidth, ri.viewHeight );
 
-			m_vren.Bind( 0 );
+			getOffscreenTexture().Bind();
 
 			//const GLfloat envcol[4] = { 0,0,0,0 };
 			//glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND );
@@ -833,7 +837,7 @@ void VolumeRendererRaycast::render()
 	// Step 2) Traverse ray
 	// - use single-pass shader with loops (see RaycastShader)
 	if( m_offscreen )
-		renderRaycast( ri, m_raycast_shader, &m_r2t, &m_vren );
+		renderRaycast( ri, m_raycast_shader, &m_r2t, &getOffscreenTexture() );
 	else
 		renderRaycast( ri, m_raycast_shader );
 
