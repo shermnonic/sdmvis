@@ -56,6 +56,10 @@
 //   1 - hw linear filtering
 #define FILTER 1
 
+// Non-polygonal isosurface rendering with Phong shading
+// and intersection refinement
+#define ISOSURFACE <__opt_ISOSURFACE__>
+
 // Color mode (if warps are used)
 // 0 - plain white
 // 1 - color warp strength in Red channel
@@ -65,12 +69,12 @@
 #if REFORMATION_TEST == 1
 	#define COLORMODE 4
 #else
-	#define COLORMODE 2
+	#if ISOSURFACE == 1
+		#define COLORMODE 2
+	#else
+		#define COLORMODE 0
+	#endif
 #endif
-
-// Non-polygonal isosurface rendering with Phong shading
-// and intersection refinement
-#define ISOSURFACE <__opt_ISOSURFACE__>
 
 // Maximum intensity projection (DVR, lighting supported but useless in general)
 #define MIP        <__opt_MIP__>
@@ -450,7 +454,7 @@ vec3 get_warp2( vec3 x )
 #if REFORMATION_TEST==1
 	// TESTING ON-THE-FLY GROUP MEAN SHAPE COMPUTATION
 	
-	float l = lambda16; // / 3.0;
+	float l = lambda16 / 3.0;
 
 	if( l < 0.0 )
 	{
@@ -788,11 +792,17 @@ vec3 colorcode( vec3 disp )
 
   #elif COLORMODE == 4
 	// two-group colouring
-	float l = lambda16 / 3.0; // soft group assignment in [-3,3]
-	float a = 0.5 + sign(l)*clamp(0.5*abs(l),0.0,0.5);
 	vec3 col1 = vec3(0.3,1.0,0.3);
 	vec3 col2 = vec3(1.0,0.3,1.0);
-	color = mix( col1, col2, a );
+
+	float l = lambda16 / 3.0; // soft group assignment in [-3,3]	
+	if( l < 0.0 )
+		color = mix( vec3(1.0), col1, 0.5*abs(l) );
+	else
+		color = mix( vec3(1.0), col2, 0.5*l );
+	
+	//float a = 0.5 + sign(l)*clamp(0.5*abs(l),0.0,0.5);
+	//color = mix( col1, col2, a );
   #endif
 #endif
 	
