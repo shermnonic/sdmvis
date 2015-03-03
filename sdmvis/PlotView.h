@@ -3,18 +3,20 @@
 
 #include <QtGui/QGraphicsView>
 #include <QRectF>
+#include <QtGui>
+#include <QtGui/QGraphicsItem>
+#include <QtGui/QStyleOptionGraphicsItem>
+#include <QString>
+
+#include "PlotWidget.h"
+#include "ScatterPlotWidget.h"
 #include "numerics.h"
+
 class QGraphicsView;
 class QMouseEvent;
 class QPainter;
 class QRubberBand;
 class PlotItem;
-#include <QtGui>
-#include <QtGui/QGraphicsItem>
-#include <QtGui/QStyleOptionGraphicsItem>
-#include <QString>
-#include "PlotWidget.h"
-#include "ScatterPlotWidget.h"
 
 class PlotView : public QGraphicsView
 {

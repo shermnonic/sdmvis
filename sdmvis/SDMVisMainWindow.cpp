@@ -3,15 +3,19 @@
 #include "DatasetWidget.h"
 #include "BatchProcessingDialog.h"
 #include "TraitDialog.h"
+
 #include <QtGui>
 #include <QHelpContentWidget>
 #include <QHelpIndexWidget>
 #include <QTimer>
-#include "Trait.h"
-#include <VolumeRendering/VolumeUtils.h>  // load_volume(), create_volume_tex()
+
 #include <fstream>
 #include <string>
-#include "plotWidget.h"
+
+#include <VolumeRendering/VolumeUtils.h>  // load_volume(), create_volume_tex()
+
+#include "Trait.h"
+#include "PlotWidget.h"
 #include "TraitSelectionWidget.h"
 #include "ConfigGenerator.h"
 #include "e7/VolumeRendering/RayPickingInfo.h"
