@@ -1648,6 +1648,8 @@ void SDMVisVolumeRenderer::mouseMoveEvent( QMouseEvent* e )
 	if( e->isAccepted() )
 		return;
 
+	setLOD( FastRendering );
+
 	m_mousePos = e->pos();
 
 	if( m_mode == ModeTrackball )
@@ -1686,6 +1688,8 @@ void SDMVisVolumeRenderer::mousePressEvent( QMouseEvent* e )
 		return;
 
 	m_mousePos = e->pos();
+
+	setLOD( FastRendering );
 
 	if( m_mode == ModeTrackball )
 	{
@@ -1740,6 +1744,8 @@ void SDMVisVolumeRenderer::mouseReleaseEvent( QMouseEvent* e )
 	QGLWidget::mouseMoveEvent( e );
 	if( e->isAccepted() )
 		return;
+
+	setLOD( QualityRendering );
 
 	m_mousePos = e->pos();
 
@@ -2574,4 +2580,11 @@ void SDMVisVolumeRenderer::changeWarpAnimationWarp()
 				m_animWarp, 0, 4, 1, &ok );
 	if( ok )
 		m_animWarp = i;
+}
+
+
+
+void SDMVisVolumeRenderer::setLOD( int level )
+{
+	m_vren->setOffscreen( level == FastRendering );
 }
