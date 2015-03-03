@@ -7,12 +7,13 @@
 #include <QTextBrowser>
 #include <QGraphicsScene>
 #include <QList>
+#include <QVector>
+#include <QLabel>
+
 #include "PlotView.h"
 #include "numerics.h"
 #include "Trait.h"
 #include "CSVExporter.h"
-#include <QVector>
-#include <QLabel>
 
 #define PLOTWIDGET_CONTEXT_MENU
 

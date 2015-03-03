@@ -2,6 +2,8 @@
 #define SDMTENSORVISWIDGET_H
 
 #include "QTensorVisWidget.h"
+
+
 #include "e7/VolumeRendering/RayPickingInfo.h"
 #include "EditLocalCovariance.h"
 #include "LinearLocalCovariance.h"
@@ -10,7 +12,6 @@
 #include "TensorDataAdaptor.h"
 #include "TensorVis2.h"
 #include "SDMTensorProbe.h"
-
 #include "VTKVisPrimitives.h" // SphereMarker
 
 #include <vtkRenderWindowInteractor.h>
