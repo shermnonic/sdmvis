@@ -25,10 +25,12 @@
 //#define VREN_SUPPORT_TOM
 // ----------------------------------------------------------------------------
 
-#if 1 //was: #ifdef _DEBUG
-#define VREN_DEFAULT_VERBOSITY 3
-#else
-#define VREN_DEFAULT_VERBOSITY 0
+#ifndef VREN_DEFAULT_VERBOSITY
+ #ifdef _DEBUG
+  #define VREN_DEFAULT_VERBOSITY 3
+ #else
+  #define VREN_DEFAULT_VERBOSITY 0
+ #endif
 #endif
 
 #ifdef VREN_SUPPORT_TOM
