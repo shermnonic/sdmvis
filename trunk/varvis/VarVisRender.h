@@ -6,10 +6,12 @@
 #define VREN_MARCHING_CUBES
 #define VREN_GPU_RAYCASTER
 
-#ifdef _DEBUG
-#define VREN_DEFAULT_VERBOSITY 3
-#else
-#define VREN_DEFAULT_VERBOSITY 0
+#ifndef VREN_DEFAULT_VERBOSITY
+ #ifdef _DEBUG
+  #define VREN_DEFAULT_VERBOSITY 3
+ #else
+  #define VREN_DEFAULT_VERBOSITY 0
+ #endif
 #endif
 // ----------------------------------------------------------------------------
 
