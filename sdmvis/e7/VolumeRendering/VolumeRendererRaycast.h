@@ -96,6 +96,8 @@ public:
 	///@{ Offscreen rendering
 	void setOffscreen( bool b ) { m_offscreen = b; }
 	bool getOffscreen() const { return m_offscreen; }
+	void setOffscreenPreviewQuality( bool b ) { m_offscreenPreviewQuality = b; }
+	bool getOffscreenPreviewQuality() const { return  m_offscreenPreviewQuality; }
 	///@}
 
 	///@{ Render additional debug textures
@@ -145,13 +147,19 @@ protected:
 
 	void updateLookupTable();
 
+	GL::GLTexture& getOffscreenTexture() 
+		{ return m_offscreenPreviewQuality ? m_vrenlq : m_vren; }
+
 private:
 	int m_verbosity;
 
 	GL::GLTexture   m_front,  // front cube(s) (ray start positions)
 	                m_back,   // back cube(s) (ray end positions)
 					m_vren,   // raycasted volume (if not directly rendered)	
+					m_vrenlq, // raycasted volume (preview quality)
 	                m_lut_tex;// lookup table
+
+	bool m_offscreenPreviewQuality;
 
 	ClipCube        m_cube;
 	RenderToTexture m_r2t;
