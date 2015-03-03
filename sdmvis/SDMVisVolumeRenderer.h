@@ -331,8 +331,12 @@ protected:
 
 	void resetShader();
 
+	///@{ LOD
 	enum { FastRendering, QualityRendering };
 	void setLOD( int level );
+public slots:
+	void setLODUpdate( bool b ) { setLOD( b ? FastRendering : QualityRendering ); }
+	///@}
 
 private:
 	void invokeRenderUpdate();

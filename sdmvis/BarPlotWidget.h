@@ -14,6 +14,8 @@ signals:
 	void valueChanged( int index, double newValue );
 	void valueSelected( int index, double selValue );
 
+	void valueDragActive( bool );
+
 public:
 	typedef QVector<double> Vector;
 
