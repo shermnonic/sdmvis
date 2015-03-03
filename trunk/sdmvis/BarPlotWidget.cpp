@@ -308,6 +308,8 @@ void BarPlotWidget::mousePressEvent( QMouseEvent* event )
 		update();                           // update myself		
 		emit valueChanged( index, value );  // tell others about it
 	}
+
+	emit valueDragActive( m_valueDragActive );
 }
 
 void BarPlotWidget::mouseMoveEvent( QMouseEvent* event )
@@ -340,4 +342,5 @@ void BarPlotWidget::mouseReleaseEvent( QMouseEvent* event )
 {
 	m_valueDragActive = false;
 	m_valueSelActive = false;
+	emit valueDragActive(false);
 }

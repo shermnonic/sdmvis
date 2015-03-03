@@ -363,14 +363,16 @@ void SDMVisVolumeRendererControlWidget::connectMaster( SDMVisVolumeRenderer* mas
 		m_bars->setLabels( labels );
 		m_bars->setEnabled( true );
 		connect( m_bars, SIGNAL(valueChanged(int,double)), master, SLOT(setLambda(int,double)) );	
-		connect( master, SIGNAL(lambdasChangedByAnimation()), this, SLOT(updateLambdas()) );		
+		connect( m_bars, SIGNAL(valueDragActive(bool)), master, SLOT(setLODUpdate(bool)) );
+		connect( master, SIGNAL(lambdasChangedByAnimation()), this, SLOT(updateLambdas()) );
 
 		m_vrenOpts->connectMaster( master );
 	}
 	else
 	{
 		disconnect( master, SIGNAL(lambdasChangedByAnimation()), 0,0 );
-		disconnect( m_bars, SIGNAL(valueChanged(int,double)), 0,0 );		
+		disconnect( m_bars, SIGNAL(valueChanged(int,double)), 0,0 );
+		disconnect( m_bars, SIGNAL(valueDragActive(bool)), 0,0 );
 		QVector<double> zero;
 		for( int i=0; i < m_bars->getValues().size(); ++i )
 			zero.push_back( 0.0 );
@@ -1745,8 +1747,6 @@ void SDMVisVolumeRenderer::mouseReleaseEvent( QMouseEvent* e )
 	if( e->isAccepted() )
 		return;
 
-	setLOD( QualityRendering );
-
 	m_mousePos = e->pos();
 
 	if( m_mode == ModeTrackball )
@@ -1755,20 +1755,22 @@ void SDMVisVolumeRenderer::mouseReleaseEvent( QMouseEvent* e )
 		{
 			m_trackball2.stop();
 			e->accept();
-			invokeRenderUpdate();			
+			// invokeRenderUpdate();
 		}
 	}
 	else
 	if( m_mode == ModeSelectROI )
 	{
 		e->accept();
-		invokeRenderUpdate();
+		//invokeRenderUpdate();
 	}
 	else
 	if( m_mode == ModePicking )
 	{
 		// nothing to do yet
 	}
+
+	setLOD( QualityRendering ); // -> implcitly triggers rendering
 }
 
 void SDMVisVolumeRenderer::wheelEvent( QWheelEvent* e )
@@ -2587,4 +2589,8 @@ void SDMVisVolumeRenderer::changeWarpAnimationWarp()
 void SDMVisVolumeRenderer::setLOD( int level )
 {
 	m_vren->setOffscreen( level == FastRendering );
+	if( level == QualityRendering )
+	{
+		updateGL();
+	}
 }
