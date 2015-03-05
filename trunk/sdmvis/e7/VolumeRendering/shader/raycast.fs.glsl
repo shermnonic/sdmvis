@@ -33,6 +33,7 @@
 	#define ENLARGE_DOMAIN_FOR_REFORMATION
 #endif
 
+//#define LIKELIHOOD_VOLUME_TEST
 
 
 // Debug modes:
@@ -127,7 +128,7 @@ varying vec2 tc;
 #if REFORMATION_TEST == 1
 	#define TEST_HIERARCHY
 #endif
-#ifndef TEST_HIERARCHY
+#if !defined(TEST_HIERARCHY) && !defined(LIKELIHOOD_VOLUME_TEST)
 <__auto_warp_uniforms__>
 #else
 uniform float lambda16;
@@ -206,6 +207,13 @@ vec3 g_displacement = vec3(0.0);
 
 vec3 g_normal;
 
+//------------------------------------------------------------------------------
+// Utility functions
+
+float window( float edge0, float edge1, float delta, float x )
+{	
+	return smoothstep(edge0-delta,edge0+delta,x)*(1.0-smoothstep(edge1-delta,edge1+delta,x));
+}
 
 //------------------------------------------------------------------------------
 // Transfer function and opacity correction
@@ -377,11 +385,6 @@ mat3 expm( mat3 M )
 //-----------------------------------------------------------------------------
 // Reformation on Apodemus Flavicollis
 
-float window( float edge0, float edge1, float delta, float x )
-{	
-	return smoothstep(edge0-delta,edge0+delta,x)*(1.0-smoothstep(edge1-delta,edge1+delta,x));
-}
-
 vec3 reform_flavi_ears( vec3 x )
 {	
 	// Local support
@@ -449,11 +452,9 @@ vec3 reform_flavi_teeth( vec3 x )
 	//return 0.3*lambda0*w1*v1 + 0.3*lambda1*w2*v2;
 }
 
-vec3 get_warp2( vec3 x )
-{
 #if REFORMATION_TEST==1
-	// TESTING ON-THE-FLY GROUP MEAN SHAPE COMPUTATION
-	
+vec3 groupmean_omnicarni( vec3 x )
+{
 	float l = lambda16 / 3.0;
 
 	if( l < 0.0 )
@@ -500,7 +501,16 @@ vec3 get_warp2( vec3 x )
 		vec3 vb = (1.0/8.0)*get_warp( x );
 		return l*vb;
 	}
-	return vec3(0.0);	
+	return vec3(0.0);
+}
+#endif
+
+vec3 get_warp2( vec3 x )
+{
+#if REFORMATION_TEST==1
+	// TESTING ON-THE-FLY GROUP MEAN SHAPE COMPUTATION
+	return groupmean_omnicarni( x );
+	
 #elif REFORMATION_TEST==2
 	// Log affine transformation (evaluated off-line)
     // Central rotation around x
@@ -515,6 +525,7 @@ vec3 get_warp2( vec3 x )
 					   0.0,       0.0,      0.0,      0.0  ));
 	vec3 v = (L*vec4(x-center,1.0)).xyz - L[3].xyz;
 	return lambda0*w*(-v); // + get_warp(x);
+	
 #elif REFORMATION_TEST==3
 	//return reform_flavi_teeth( x ) + reform_flavi_ears( x ) + reform_flavi_nose( x ) + get_warp( x );
 	if( lambdaUser > 0.01 )
@@ -524,8 +535,9 @@ vec3 get_warp2( vec3 x )
 		return  w*v + get_warp( x );
 	}
 	return get_warp( x );
-#elif REFORMATION_TEST==4
+	
 #else
+
 	return get_warp( x );
 #endif
 }
@@ -642,16 +654,39 @@ vec3 inverse_domain_transform( vec3 y )
 #endif
 }
 
-float get_volume_scalar( vec3 x )
+float get_grid( vec3 x )
 {
-	x = domain_transform( x );
+	// Grid planes
+	vec3 grid = 0.1*vec3(
+		mod(x.x*200.0,10.0),
+		mod(x.y*200.0,10.0),
+		mod(x.z*400.0,10.0) );
 	
-#if WARP == 1	
-	// deform volume by offset texture
-	vec3 d = get_inverse_displacement( x );
-	x += d;
-	g_displacement = inverse_domain_transform(d);
-#endif
+#if WARP == 1
+	vec3 v = get_warp( x );
+	vec3 w = abs(v); //vec3(length(v)); // = abs(v);
+	float s = 0.0;
+	if( length(v) > 0.0008 )
+		s = 1.0;	
+#else
+	vec3 w = vec3(1.0);
+	float s = 1.0;
+#endif	
+
+	// Transfer function design
+	grid = 0.6*vec3( 
+		window(0.5,0.6,0.025,grid.x),
+		window(0.5,0.6,0.025,grid.y),
+		window(0.5,0.6,0.025,grid.z) );
+	float lines = grid.x*grid.y + grid.y*grid.z + grid.x*grid.z;	
+
+	return 3.0*s*lines;
+	//(3.0+60.0*w)*lines;
+	//1.0-smoothstep(0.99,10.0,mod(x.z*100.0,10.0));
+}
+
+float get_scalar( vec3 x )
+{
 #if CHANNELS == 3
 	// return magnitude of vectorfield entry
 	return length( texture3D( voltex, x ).rgb );
@@ -662,7 +697,48 @@ float get_volume_scalar( vec3 x )
 	// simulate nearest neighbour filtering
 	return texture3D( voltex, (floor(x*voxelsizei)+0.0)*voxelsize ).w;
   #endif
+#endif	
+}
+
+#ifdef LIKELIHOOD_VOLUME_TEST
+float get_likelihood_contribution( vec3 x )
+{
+	float s = get_scalar( x + get_inverse_displacement( x ) );
+	return smoothstep( 0.1, 0.15, s );
+}
 #endif
+
+float get_volume_scalar( vec3 x )
+{
+	x = domain_transform( x );
+	
+#ifdef LIKELIHOOD_VOLUME_TEST
+	lambda0=0.0; lambda1=0.0; lambda2=0.0; lambda3=0.0; lambda4=0.0; lambda5=0.0; 
+	lambda6=0.0; lambda7=0.0; lambda8=0.0; lambda9=0.0; lambda10=0.0; lambda11=0.0; 
+	lambda12=0.0; lambda13=0.0; lambda14=0.0; lambda15=0.0;
+	
+	float acc = 0.0;
+	const int n = 1;
+	for( int i=0; i < (2*n+1); i++ )
+	{
+		float delta = 2.0*float(i)/float(2*n) - 1.0;
+		lambda3 = 3.0*delta;
+		acc += get_likelihood_contribution( x );
+	}
+	acc /= float(2*n+1);
+	acc *= alpha_scale;
+	return acc;
+#endif	
+	
+#if WARP == 1
+	// deform volume by offset texture
+	vec3 d = get_inverse_displacement( x );
+	x += d;
+	g_displacement = inverse_domain_transform(d);
+#endif
+	
+	return get_scalar( x );
+	//return get_grid( x );
 }
 
 #if WARP == 1
@@ -853,8 +929,6 @@ void main(void)
 	
 #if MIP == 1
 	float mip = 0.0;
-	// HACK: alpha_scale not important for MIP?
-	alpha_scale = 0.01;
 #endif
 
 	// ray traversal

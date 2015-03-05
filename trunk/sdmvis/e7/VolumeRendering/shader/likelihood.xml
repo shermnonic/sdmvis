@@ -1,0 +1,6 @@
+<ColorMap space="RGB" indexedLookup="false" name="Grayscale">
+  <Point x="0.0"    o="0.0"     r="0.039" g="0.039" b="0.949"/>
+  <Point x="0.015"  o="0.76"     r="0.039" g="0.039" b="4.949"/>
+  <Point x="1.0"    o="0.96"     r="0.949" g="0.949" b="0.039"/>
+  <NaN r="1" g="0" b="0"/>
+</ColorMap>
