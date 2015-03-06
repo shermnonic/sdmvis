@@ -1,7 +1,8 @@
 #ifndef SDMVISVOLUMERENDERER_H
 #define SDMVISVOLUMERENDERER_H
 
-#include <GL/glew.h>
+//#include <GL/glew.h>
+#include <GL/GLConfig.h>
 #include <QGLWidget>
 #include <QGroupBox>
 #include <QList>
