@@ -5,11 +5,6 @@
 #include <iostream>
 #include <string>
 
-#ifndef GL_GEOMETRY_SHADER
-#pragma message("Warning: Define GL_GEOMETRY_SHADER not found!")
-#define GL_GEOMETRY_SHADER 42
-#endif
-
 #ifdef GL_NAMESPACE
 namespace GL {
 #endif
@@ -43,9 +38,20 @@ public:
 	bool load( const std::string& vertSrc, const std::string& fragSrc );
 	bool load_from_disk( const char* vs_filename, const char* fs_filename );
 	///@}
+	
+	///@{ Load and compile GLSL program consisting of vertex & geometry & fragment shader
+	bool load( const GLchar** vShaderSrc, const GLchar** gShaderSrc, const GLchar** fShaderSrc );
+	bool load( const std::string& vertSrc, const std::string& geomSrc, const std::string& fragSrc );
+	bool load_from_disk( const char* vs_filename, const char* gs_filename, const char* fs_filename );
+	///@}	
 
 	/// Convenience function for std::string support
 	bool shaderSource( GLenum type, const std::string& src );
+	
+	///@{ Convenience functions
+	bool link() { return linkProgram( m_program ); }	
+	std::string getProgramLog() { return getProgramLog( m_program ); }
+	///@}
 
 	/// Same as glUseProgram(program)
 	void bind()    const;
@@ -59,12 +65,13 @@ public:
 	bool shaderSource( GLenum type, const GLchar** src );
 
 	bool compileShader( GLuint shader  );
-	bool linkProgram  ( GLuint program );
+	bool linkProgram  ( GLuint program );	
 	
 	std::string getShaderLog ( GLuint shader  );
 	std::string getProgramLog( GLuint program );
 
     GLint getUniformLocation( const GLchar* name );
+	GLint getAttribLocation( const GLchar* name );
 	///@}
 
 	/// Redirect log output
@@ -72,6 +79,8 @@ public:
 
 protected:
 	std::ostream* m_log;  ///< pointer to output stream used for log messages
+
+	std::string getShaderType( GLuint shader );
 
 private:
 	int m_opt; ///< options bitmask as passed to the constructor

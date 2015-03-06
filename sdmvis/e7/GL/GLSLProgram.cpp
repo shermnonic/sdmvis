@@ -19,7 +19,7 @@ char* GLSLProgram::read_shader_from_disk( const char* filename )
 	if( is.good() )
 	{	
 		is.seekg(0,ios::end);
-		std::streamoff len = is.tellg();
+		int len = (int)is.tellg();
 		is.seekg(0,ios::beg);
 
 		char* buf = new char[len+1];
@@ -37,23 +37,38 @@ char* GLSLProgram::read_shader_from_disk( const char* filename )
 
 bool GLSLProgram::load_from_disk( const char* vs_filename, const char* fs_filename )
 {
+	return load_from_disk( vs_filename, NULL, fs_filename );
+}
+
+bool GLSLProgram::load_from_disk( const char* vs_filename, const char* gs_filename, const char* fs_filename )
+{
 	// load from disk
 	char* vertex_shader   = read_shader_from_disk( vs_filename );
 	char* fragment_shader = read_shader_from_disk( fs_filename );
-	if( !vertex_shader || !fragment_shader )
+	char* geometry_shader = gs_filename ? read_shader_from_disk( gs_filename ) : NULL;
+	if( !vertex_shader || !fragment_shader 
+		|| (gs_filename && !geometry_shader) )
 	{
-		cerr << "Error: Failed to load GLSL shader files '"
-			 << vs_filename << "' and '"
-			 << fs_filename << "'!" << endl;
+		cerr << "Error: Failed to load GLSL shader files: " << endl;
+		cerr << "  Vertex shader  : " << vs_filename << endl;
+		if( gs_filename )		
+			cerr << "  Geometry shader: " << gs_filename << endl;
+		cerr << "  Fragment shader: " << fs_filename << endl;
 		if( vertex_shader   ) delete [] vertex_shader;
+		if( geometry_shader ) delete [] geometry_shader;
 		if( fragment_shader ) delete [] fragment_shader;
 		return false;
 	}
-
+	
 	// compile
-	bool success = load( vertex_shader, fragment_shader );
+	bool success;
+	if( gs_filename )
+		success = load( vertex_shader, geometry_shader, fragment_shader );
+	else
+		success = load( vertex_shader, fragment_shader );
 
 	delete [] vertex_shader;
+	delete [] geometry_shader;
 	delete [] fragment_shader;
 	return success;
 }
@@ -63,6 +78,17 @@ bool GLSLProgram::load( const std::string& vertSrc, const std::string& fragSrc )
 	return  shaderSource( GL_VERTEX_SHADER  , vertSrc ) &&
 	        shaderSource( GL_FRAGMENT_SHADER, fragSrc ) &&
 		    compileShader( m_vShader ) &&
+			compileShader( m_fShader ) &&
+			linkProgram( m_program );
+}
+
+bool GLSLProgram::load( const std::string& vertSrc, const std::string& geomSrc, const std::string& fragSrc )
+{
+	return  shaderSource( GL_VERTEX_SHADER  , vertSrc ) &&
+	        shaderSource( GL_GEOMETRY_SHADER, geomSrc ) &&
+	        shaderSource( GL_FRAGMENT_SHADER, fragSrc ) &&
+		    compileShader( m_vShader ) &&
+		    compileShader( m_gShader ) &&
 			compileShader( m_fShader ) &&
 			linkProgram( m_program );
 }
@@ -128,6 +154,17 @@ bool GLSLProgram::load( const GLchar** vShaderSrc, const GLchar** fShaderSrc  )
 	       linkProgram( m_program );
 }
 
+bool GLSLProgram::load( const GLchar** vShaderSrc, const GLchar** gShaderSrc, const GLchar** fShaderSrc  )
+{
+	return shaderSource( GL_VERTEX_SHADER  , vShaderSrc ) &&
+	       shaderSource( GL_GEOMETRY_SHADER, gShaderSrc ) &&	
+	       shaderSource( GL_FRAGMENT_SHADER, fShaderSrc ) &&	
+	       compileShader( m_fShader ) && 
+		   compileShader( m_gShader ) &&
+	       compileShader( m_vShader ) &&
+	       linkProgram( m_program );
+}
+
 bool GLSLProgram::shaderSource( GLenum type, const GLchar** src )
 {
 	return shaderSource( type, 1, src, 0 );
@@ -167,8 +204,13 @@ void GLSLProgram::release_all()
 }
 
 GLint GLSLProgram::getUniformLocation( const GLchar* name )
-{	
+{		
 	return glGetUniformLocation( m_program, name );
+}
+
+GLint GLSLProgram::getAttribLocation( const GLchar* name )
+{
+	return glGetAttribLocation( m_program, name );
 }
 
 string GLSLProgram::getShaderLog( GLuint shader )
@@ -215,6 +257,15 @@ string GLSLProgram::getProgramLog( GLuint program )
 	return ss.str();
 }
 
+std::string GLSLProgram::getShaderType( GLuint shader )
+{
+	if( shader==m_vShader ) return "Vertex Shader"; else
+	if( shader==m_fShader ) return "Fragment Shader"; else
+	if( shader==m_gShader ) return "Geometry Shader";
+
+	return "(Unknown shader)";
+}
+
 bool GLSLProgram::compileShader( GLuint shader )
 {
 	int compileSuccess;
@@ -224,7 +275,9 @@ bool GLSLProgram::compileShader( GLuint shader )
 	
 	if( !compileSuccess )
 	{
-		*m_log << getShaderLog( shader ) << endl;
+		*m_log << "Compilation of " << getShaderType(shader) << " failed!\n";
+		*m_log << "Shader compilation log:\n"
+		       << getShaderLog( shader ) << endl;
 		return false;
 	}
 	
@@ -239,7 +292,9 @@ bool GLSLProgram::linkProgram( GLuint program )
 	glGetProgramiv( program, GL_LINK_STATUS, &linkSuccess );
 	if( !linkSuccess )
 	{
-		*m_log << getProgramLog( program ) << endl;
+		*m_log << "Linking shader program failed!\n"
+			   << "Program log:\n"
+		       << getProgramLog( program ) << endl;
 		return false;
 	}
 	
