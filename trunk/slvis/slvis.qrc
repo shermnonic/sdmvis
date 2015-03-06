@@ -1,0 +1,16 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+  <file>data/icons/icon.png</file>
+<!--  <file>data/icons/document-new.png</file>
+  <file>data/icons/document-open.png</file>
+  <file>data/icons/document-save.png</file>
+  <file>data/icons/document-save-as.png</file>
+  <file>data/icons/tensor.png</file>
+  <file>data/icons/trait2.png</file>
+  <file>data/icons/edit.png</file>
+  <file>data/icons/trackball.png</file>
+  <file>data/icons/roi.png</file>
+  <file>data/icons/vectorfield.png</file> -->
+</qresource>
+</RCC>
+
