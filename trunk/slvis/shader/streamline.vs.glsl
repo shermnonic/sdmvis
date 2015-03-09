@@ -8,5 +8,6 @@ in vec3 Position;
 
 void main()
 {
-	gl_Position = Projection*Modelview*vec4(Position,1.0);	
+	// Points will be transformed in geometry shader
+	gl_Position = vec4(Position,1.0);	
 }
