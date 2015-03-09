@@ -2,7 +2,7 @@
 #version 150
 
 layout(points) in;
-layout(points) out;
+layout(points, max_vertices=1) out;
 
 //uniform sampler3D voltex;
 //uniform sampler3D warpfield;

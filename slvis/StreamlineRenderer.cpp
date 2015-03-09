@@ -18,7 +18,7 @@ StreamlineRenderer::StreamlineRenderer()
 bool StreamlineRenderer::initGL()
 {
 	if( m_program ) delete m_program;
-	m_program = new GLSLProgram();// GLSLProgram::WITH_GEOMETRY_SHADER );
+	m_program = new GLSLProgram( GLSLProgram::WITH_GEOMETRY_SHADER );
 	return true;
 }
 
@@ -55,7 +55,7 @@ void StreamlineRenderer::reloadShadersFromDisk()
 	// Load and compile
 	if( !m_program->load_from_disk( 
 		"shader/streamline.vs.glsl",
-		//"shader/streamline.gs.glsl",
+		"shader/streamline.gs.glsl",
 		"shader/streamline.fs.glsl" ) )
 	{
 		cerr << "StreamlineRenderer::reloadShadersFromDisk() : "

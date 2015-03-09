@@ -126,10 +126,9 @@ void PointSamples::render( unsigned shaderProgram )
 		glUseProgram( 0 );
 	}
 #else
-	// Render VBO
+	// Setup VBO
 	if( !m_vbo.initialized && !m_vbo.create() )
-		return;
-	
+		return;	
 	if( m_dirty && m_vdata )
 	{
 		if( !m_vbo.upload( m_vdata, m_numPoints ) )
@@ -137,9 +136,10 @@ void PointSamples::render( unsigned shaderProgram )
 		else
 			// upload successful 
 			m_dirty = false;
-		m_vbo.unbind(); // FIXME: Unbind should not be needed!
-	}	
+	}
+	m_vbo.bind();
 
+	// Setup VAO
 	GLint posAttrib=-1;
 	if( shaderProgram > 0 && m_vao > 0 )
 	{
@@ -147,14 +147,12 @@ void PointSamples::render( unsigned shaderProgram )
 		glBindVertexArray( m_vao );
 		posAttrib = glGetAttribLocation( shaderProgram, "Position" );
 		glEnableVertexAttribArray( posAttrib );
-		m_vbo.bind();
 		glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 		GL::CheckGLError("PointSamples::render() - VAO setup");
 	}
 	else
 	{
 		// Fall-back solution w/o VAO
-		m_vbo.bind();
 		glEnableClientState( GL_VERTEX_ARRAY );
 		glVertexPointer( 3, GL_FLOAT, 0, 0 );
 	}
@@ -176,9 +174,11 @@ void PointSamples::render( unsigned shaderProgram )
 	}
 	GL::CheckGLError("PointSamples::render() -- Enable shader");
 
+	// Draw
 	glDrawArrays( GL_POINTS, (GLint)0, (GLsizei)m_numPoints );
 	GL::CheckGLError("PointSamples::render() -- glDrawArrays()");
 
+	// Release
 	if( shaderProgram>0 )
 	{
 		glUseProgram( 0 );
