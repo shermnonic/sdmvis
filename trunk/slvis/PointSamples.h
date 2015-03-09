@@ -14,13 +14,15 @@ public:
 	{}
 		
 	~PointSamples();
-		
+	
+	/// Setup GL specific resources (requires context)
+	void initGL();
 	/// Free GL specific resources (requires context)
 	void destroyGL();	
 	
 	bool loadPointSamples( const char* filename );
 		
-	void render();
+	void render( unsigned /*GLuint*/ shaderProgram=0 );
 
 	float* getDataPtr() { return m_vdata; }
 	int getNumPoints() const { return m_numPoints; }
@@ -70,6 +72,7 @@ private:
 		VertexBufferObject(): vbo(0), initialized(false) {}
 	};
 	VertexBufferObject m_vbo;
+	unsigned m_vao; // should be GLuint
 };
 
 #endif // POINTSAMPLES_H
