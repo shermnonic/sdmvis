@@ -270,5 +270,6 @@ void Viewer::updateBoundingBox()
 		(double)m_seed.getAABBMax()[2] );
 
 	setSceneBoundingBox( min_, max_ );
+	showEntireScene();
 }
 

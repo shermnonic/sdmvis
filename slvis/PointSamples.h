@@ -52,6 +52,7 @@ private:
 			min_[0] = min_[1] = min_[2] =  std::numeric_limits<float>::max();
 			max_[0] = max_[1] = max_[2] = -std::numeric_limits<float>::max();
 		}
+		AABB() { reset(); }
 	};
 	AABB m_aabb;
 	void updateAABB();
