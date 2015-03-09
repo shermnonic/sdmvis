@@ -1,6 +1,7 @@
 #include "StreamlineRenderer.h"
 #include "glbase.h"
 #include <GL/GLSLProgram.h>
+#include <GL/GLTexture.h>
 #include <GL/GLError.h>
 #include <iostream>
 
@@ -35,7 +36,15 @@ void StreamlineRenderer::bind()
 {
 	if( !m_program ) return; // Sanity
 	m_program->bind();
-	// TODO: Set uniforms
+
+	if( m_uniforms["warpfield"] && m_texWarpfield )
+	{
+		glUniform1i( m_uniforms["warpfield"], 0 );
+		m_texWarpfield->Bind( 0 );
+	}
+
+	glActiveTexture( GL_TEXTURE0 );
+	
 	GL::checkGLError("StreamlineRenderer::bind()");
 }
 

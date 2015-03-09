@@ -89,42 +89,17 @@ bool PointSamples::loadPointSamples( const char* filename )
 	return true;
 }
 
-void setShaderProgramDefaultMatrices( GLuint program )
-{
-	GLfloat modelview[16], projection[16]; 
-	glGetFloatv( GL_MODELVIEW_MATRIX, modelview );
-	glGetFloatv( GL_PROJECTION_MATRIX, projection );
-
-	GLint locModelview = glGetUniformLocation( program, "Modelview" );
-	GLint locProjection = glGetUniformLocation( program, "Projection" );
-
-	glUniformMatrix4fv( locModelview,  1, GL_FALSE, modelview );
-	glUniformMatrix4fv( locProjection, 1, GL_FALSE, projection );
-}
-
-
 void PointSamples::render( unsigned shaderProgram )
 {
 	GL::CheckGLError("PointSamples::render() - on invocation");
 #if 0
 	// Render in immediate mode (for debugging)
-	if( shaderProgram>0 )
-	{	
-		glUseProgram( shaderProgram );
-		setShaderProgramDefaultMatrices( shaderProgram );
-		GL::CheckGLError("PointSamples::render() - glUseProgram()");
-	}
 	glBegin( GL_POINTS );
 	float *ptr = m_vdata;
 	for( int i=0; i < m_numPoints; i++, ptr+=3 )
 		glVertex3fv( ptr );
 	glEnd();
 	GL::CheckGLError("PointSamples::render() - glBegin/glEnd");
-	if( shaderProgram>0 )
-	{
-		GL::CheckGLError("PointSamples::render() - glUseProgram(0)");
-		glUseProgram( 0 );
-	}
 #else
 	// Setup VBO
 	if( !m_vbo.initialized && !m_vbo.create() )
@@ -157,34 +132,11 @@ void PointSamples::render( unsigned shaderProgram )
 		glVertexPointer( 3, GL_FLOAT, 0, 0 );
 	}
 
-	// FIXME: Can't we enable the program in the callee ?
-	if( shaderProgram>0 )
-	{
-		// DEBUG: Validate
-		if( !GL::GLSLProgram::validate(shaderProgram) )
-		{
-			std::cerr << "PointSamples::render() - "
-				"Invalid GLSL program! Info log:" << std::endl
-				<< GL::GLSLProgram::getProgramLog( shaderProgram );
-		}
-		else
-			glUseProgram( shaderProgram );
-
-		setShaderProgramDefaultMatrices( shaderProgram );
-	}
-	GL::CheckGLError("PointSamples::render() -- Enable shader");
-
 	// Draw
 	glDrawArrays( GL_POINTS, (GLint)0, (GLsizei)m_numPoints );
 	GL::CheckGLError("PointSamples::render() -- glDrawArrays()");
 
 	// Release
-	if( shaderProgram>0 )
-	{
-		glUseProgram( 0 );
-		GL::CheckGLError("PointSamples::render() -- glUseProgram(0)");
-	}
-
 	if( shaderProgram > 0 && m_vao > 0 )
 	{
 		glDisableVertexAttribArray( posAttrib );

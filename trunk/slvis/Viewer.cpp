@@ -8,6 +8,7 @@
 #include <QFileInfo>
 
 #include <GL/GLSLProgram.h>
+#include <GL/GLError.h>
 
 #include "VolumeUtils.h"
 
@@ -99,10 +100,41 @@ void Viewer::destroyGL()
 	m_vtm.destroy();
 }
 
+void setShaderProgramDefaultMatrices( GLuint program )
+{
+	GLfloat modelview[16], projection[16]; 
+	glGetFloatv( GL_MODELVIEW_MATRIX, modelview );
+	glGetFloatv( GL_PROJECTION_MATRIX, projection );
+
+	GLint locModelview = glGetUniformLocation( program, "Modelview" );
+	GLint locProjection = glGetUniformLocation( program, "Projection" );
+
+	glUniformMatrix4fv( locModelview,  1, GL_FALSE, modelview );
+	glUniformMatrix4fv( locProjection, 1, GL_FALSE, projection );
+}
+
 void Viewer::draw()
 {
-	//if( m_actEnableShader->isChecked() )
-	//	m_slr.bind();
+	// Bind shader
+	GLuint shaderProgram = 0;
+	if( m_actEnableShader->isChecked() )
+	{
+		m_slr.bind();
+
+		shaderProgram = m_slr.getProgram()->getProgramHandle();
+
+		setShaderProgramDefaultMatrices( shaderProgram );
+
+		// DEBUG: Validate
+		if( !GL::GLSLProgram::validate( shaderProgram ) )
+		{
+			std::cerr << "Viewer::draw() - "
+				"Invalid GLSL program! Info log:" << std::endl
+				<< GL::GLSLProgram::getProgramLog( shaderProgram );
+		}
+
+		GL::CheckGLError("Viewer::draw() - Enable shader");
+	}
 
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_LIGHTING );
@@ -112,15 +144,15 @@ void Viewer::draw()
 	
 	glColor4f(1.f,1.f,1.f,1.f);
 	glPointSize( 3.f );
-	m_seed.render( m_actEnableShader->isChecked() ? m_slr.getProgram()->getProgramHandle() : 0 );
+	m_seed.render( shaderProgram );
 
 	glDisable( GL_BLEND );	
 	glEnable( GL_LIGHTING );
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_CULL_FACE );
 
-	//// Release shader (always safe)
-	//m_slr.release();
+	// Release shader (always safe)
+	m_slr.release();
 }
 
 void Viewer::reloadShaders()
