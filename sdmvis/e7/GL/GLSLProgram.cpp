@@ -300,3 +300,11 @@ bool GLSLProgram::linkProgram( GLuint program )
 	
 	return true;
 }
+
+bool GLSLProgram::validate( GLuint program )
+{
+	GLint status;
+	glValidateProgram( program );
+	glGetProgramiv( program, GL_VALIDATE_STATUS, &status );
+	return status == GL_TRUE;
+}

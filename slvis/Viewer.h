@@ -60,6 +60,8 @@ private:
 	VolumeTextureManager m_vtm;
 	PointSamples         m_seed;
 	QString m_baseDir;
+
+	QAction* m_actEnableShader;
 };
 
 #endif // VIEWER_H

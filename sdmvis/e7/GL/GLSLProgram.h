@@ -50,6 +50,7 @@ public:
 	
 	///@{ Convenience functions
 	bool link() { return linkProgram( m_program ); }	
+	bool validate() { validate(m_program); }
 	std::string getProgramLog() { return getProgramLog( m_program ); }
 	///@}
 
@@ -64,11 +65,14 @@ public:
 	bool shaderSource( GLenum type, GLsizei count, const GLchar** src, GLint* length );
 	bool shaderSource( GLenum type, const GLchar** src );
 
+	// Compile and link use the member local (and therefore can't be static)
 	bool compileShader( GLuint shader  );
 	bool linkProgram  ( GLuint program );	
 	
-	std::string getShaderLog ( GLuint shader  );
-	std::string getProgramLog( GLuint program );
+	static std::string getShaderLog ( GLuint shader  );
+	static std::string getProgramLog( GLuint program );
+
+	static bool validate( GLuint program );
 
     GLint getUniformLocation( const GLchar* name );
 	GLint getAttribLocation( const GLchar* name );
@@ -76,6 +80,8 @@ public:
 
 	/// Redirect log output
 	void redirectLog( std::ostream& os ) { m_log = &os; }
+
+	GLuint getProgramHandle() const { return m_program; }
 
 protected:
 	std::ostream* m_log;  ///< pointer to output stream used for log messages

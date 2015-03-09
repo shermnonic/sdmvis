@@ -7,6 +7,8 @@
 #include <QMessageBox>
 #include <QFileInfo>
 
+#include <GL/GLSLProgram.h>
+
 #include "VolumeUtils.h"
 
 /// Copy information from VolumeDataHeader to VolumeTextureManager::Data
@@ -51,10 +53,16 @@ Viewer::Viewer( QWidget* parent )
 	: QGLViewer( parent )
 {
 	QAction
-		*actReloadShader = new QAction(tr("Reload shader"),this);
+		*actReloadShader = new QAction(tr("Reload shader"),this),
+		*actEnableShader = new QAction(tr("Enable shader"),this);
 	actReloadShader->setShortcut(Qt::CTRL+Qt::Key_R);
 	actReloadShader->setStatusTip(tr("Reload GLSL streamline shaders from disk."));
+	actEnableShader->setShortcut(Qt::CTRL+Qt::Key_T);
+	actEnableShader->setCheckable( true );
+	actEnableShader->setChecked( false );
 	connect( actReloadShader, SIGNAL(triggered()), this, SLOT(reloadShaders()) );
+
+	m_actEnableShader = actEnableShader;
 
 	QAction
 		*actLoadTemplate    = new QAction(tr("Load template..."),this),
@@ -70,11 +78,13 @@ Viewer::Viewer( QWidget* parent )
 	m_actions.push_back( actLoadSeedPoints );
 	m_actions.push_back( sep0 );
 	m_actions.push_back( actReloadShader );
+	m_actions.push_back( actEnableShader );
 }
 
 void Viewer::init()
 {
 	qglutils::initializeGL();	
+	m_seed.initGL();
 	m_slr.initGL();
 
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
@@ -85,12 +95,15 @@ void Viewer::destroyGL()
 {
 	makeCurrent();
 	m_slr.destroyGL();
+	m_seed.destroyGL();
 	m_vtm.destroy();
 }
 
 void Viewer::draw()
 {
-	//m_slr.bind();
+	//if( m_actEnableShader->isChecked() )
+	//	m_slr.bind();
+
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_LIGHTING );
 	glDisable( GL_CULL_FACE );
@@ -99,12 +112,14 @@ void Viewer::draw()
 	
 	glColor4f(1.f,1.f,1.f,1.f);
 	glPointSize( 3.f );
-	m_seed.render();
+	m_seed.render( m_actEnableShader->isChecked() ? m_slr.getProgram()->getProgramHandle() : 0 );
 
 	glDisable( GL_BLEND );	
 	glEnable( GL_LIGHTING );
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_CULL_FACE );
+
+	//// Release shader (always safe)
 	//m_slr.release();
 }
 

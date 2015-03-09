@@ -18,7 +18,7 @@ StreamlineRenderer::StreamlineRenderer()
 bool StreamlineRenderer::initGL()
 {
 	if( m_program ) delete m_program;
-	m_program = new GLSLProgram( GLSLProgram::WITH_GEOMETRY_SHADER );
+	m_program = new GLSLProgram();// GLSLProgram::WITH_GEOMETRY_SHADER );
 	return true;
 }
 
@@ -35,11 +35,14 @@ void StreamlineRenderer::bind()
 {
 	if( !m_program ) return; // Sanity
 	m_program->bind();
+	// TODO: Set uniforms
+	GL::checkGLError("StreamlineRenderer::bind()");
 }
 
 void StreamlineRenderer::release()
 {
 	m_program->release();
+	GL::checkGLError("StreamlineRenderer::release()");
 }
 
 void StreamlineRenderer::reloadShadersFromDisk()
@@ -52,7 +55,7 @@ void StreamlineRenderer::reloadShadersFromDisk()
 	// Load and compile
 	if( !m_program->load_from_disk( 
 		"shader/streamline.vs.glsl",
-		"shader/streamline.gs.glsl",
+		//"shader/streamline.gs.glsl",
 		"shader/streamline.fs.glsl" ) )
 	{
 		cerr << "StreamlineRenderer::reloadShadersFromDisk() : "
@@ -64,6 +67,8 @@ void StreamlineRenderer::reloadShadersFromDisk()
 	m_uniforms["voltex"   ] = m_program->getUniformLocation("voltex");
 	m_uniforms["warpfield"] = m_program->getUniformLocation("warpfield");
 	m_uniforms["isovalue" ] = m_program->getUniformLocation("isovalue");
+
+	GL::checkGLError("StreamlineRenderer::reloadShadersFromDisk()");
 }
 
 void StreamlineRenderer::setVolume( GL::GLTexture* tex )

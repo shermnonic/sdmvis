@@ -1,14 +1,12 @@
 // slvis streamline - vertex shader
-#version 110
+#version 150
 
-varying vec3 pos;
-varying vec4 color;
-varying vec2 tc;
+uniform mat4 Modelview;
+uniform mat4 Projection;
+
+in vec3 Position;
 
 void main()
 {
-	tc = gl_MultiTexCoord0.st;
-	pos = gl_Vertex.xyz;
-	color = gl_Color;
-	gl_Position = ftransform();
+	gl_Position = Projection*Modelview*vec4(Position,1.0);	
 }

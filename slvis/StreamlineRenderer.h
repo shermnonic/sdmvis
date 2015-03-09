@@ -46,6 +46,7 @@ public:
 	void setIsovalue( float iso ) { m_isovalue = iso; }
 	float getIsovalue() const { return m_isovalue; }
 
+	GL::GLSLProgram* getProgram() { return m_program; }
 
 private:
 	std::map< std::string, int > m_uniforms; ///< Uniform locations
