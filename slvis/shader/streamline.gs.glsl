@@ -4,6 +4,13 @@
 layout(points) in;
 layout(line_strip, max_vertices=6) out;
 
+in VertexAttrib
+{
+	vec4 color;
+} vertex[];
+
+out vec4 vertex_color;
+
 uniform mat4 Modelview;
 uniform mat4 Projection;
 
@@ -63,6 +70,14 @@ vec3 integrate_Euler( vec3 x0, float sign, int steps )
 	return (x-x0);
 }
 
+vec4 get_color( float t )
+{
+	const vec3 colA = vec3(0.0,0.0,1.0);
+	const vec3 colB = vec3(1.0,1.0,0.0);
+	vec3 col = mix( colA, colB, t );
+	return vec4( col, 1.0 );
+}
+
 // Geometry shader entry point
 void main()
 {
@@ -71,6 +86,7 @@ void main()
 	
 	// Seed point
 	gl_Position = MVP*p0;
+	vertex_color = get_color(0.0); // vertex[0].color;
 	EmitVertex();
 	
 	// Trace streamline
@@ -84,6 +100,7 @@ void main()
 		//disp = integrate_RK4( x, 1.0, 4 ); // 4 RK4 steps
 		x += disp;
 		gl_Position = MVP*vec4(x,1.0);
+		vertex_color = get_color( float(i+1)/5.0 );
 		EmitVertex();		
 	}		
 
