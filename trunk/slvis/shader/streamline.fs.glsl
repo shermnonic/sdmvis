@@ -1,7 +1,9 @@
 // slvis streamline - fragment shader
 #version 120
 
+in vec4 vertex_color;
+
 void main()
 {
-	gl_FragColor = vec4(0.0,0.5,1.0,1.0);
+	gl_FragColor = vec4(vertex_color.rgb, 1.0);
 }
