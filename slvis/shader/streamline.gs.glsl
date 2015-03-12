@@ -8,26 +8,38 @@
 // 0 - Euler, 1 step
 // 1 - Euler, 5 steps
 // 2 - RK4, 4 steps
-#define INTEGRATOR 0
+#define INTEGRATOR 2
 
 // Projection
 // 0 - None
 // 1 - Surface parallel
 // 2 - Surface parallel (Newton iter. to find closest isosurface)
-#define PROJECTION 1
+#define PROJECTION 0
+
+// Mode
+// 0 - Streamline integration, input: seed pts, output: trajectory as line strip
+// 1 - Triangle displacement, input: tri, output: displaced tri
+#define MODE 1
 
 //------------------------------------------------------------------------------
 //  Variables
 //------------------------------------------------------------------------------
+#if   MODE==0
 layout(points) in;
 layout(line_strip, max_vertices=6) out;
+#elif MODE==1
+layout(triangles) in;
+layout(triangle_strip, max_vertices=3) out;
+#endif // MODE
 
 in VertexAttrib
 {
 	vec4 color;
+	vec3 normal;
 } vertex[];
 
 out vec4 vertex_color;
+out vec3 vertex_normal;
 
 uniform mat4 Modelview;
 uniform mat4 Projection;
@@ -35,6 +47,7 @@ uniform mat4 Projection;
 uniform sampler3D warpfield;
 uniform sampler3D voltex;
 uniform float     isovalue;
+uniform float     displacement;
 
 // FIXME: voxelsize also serves here as domain transform!
 const vec3 voxelsize = vec3( 1.0/200.0, 1.0/200.0, 1.0/400.0 );
@@ -57,13 +70,13 @@ vec3 get_normal( vec3 x )
 float get_scalar( vec3 x )
 {
 	x *= voxelsize;
-	return texture(voltex,x).xyz;
+	return texture(voltex,x).r;
 }
 
 float get_scalar_gradient( vec3 x, vec3 dir )
 {
 	x *= voxelsize;	// Convert position to [0,1] texture coordinates	
-	dir *= voxelsize; // Scale normalized direction to length of one voxel
+	dir *= 1.5*voxelsize; // Scale normalized direction to length of one voxel
 	return 0.5*(texture(voltex,x-dir).r - texture(voltex,x+dir).r);
 }
 
@@ -77,7 +90,9 @@ vec3 project_to_isosurface( vec3 x, vec3 searchdir, float iso )
 	{
 		f  = get_scalar( x );
 		df = get_scalar_gradient( x, searchdir );
-		x -= f / df;
+		if( abs(df) < 0.01 )
+			break;
+		x -= 0.1*(f / df);
 	}
 	return x;
 }
@@ -147,11 +162,27 @@ vec4 get_color( float t )
 	return vec4( col, 1.0 );
 }
 
+// Return displacement vector for position x (after velocity integration)
+vec3 integrate( vec3 x, float time )
+{
+	vec3 disp;
+  #if   INTEGRATOR == 2
+	disp = integrate_RK4( x, time, 4 ); // 4 RK4 steps
+  #elif INTEGRATOR == 1
+	disp = integrate_Euler( x, time, 5 ); // 5 Euler steps
+  #else
+	disp = get_warp(x); // 1 Euler step	
+  #endif	
+	return disp;
+}
+
+
 //------------------------------------------------------------------------------
 //  Main
 //------------------------------------------------------------------------------
-// Geometry shader entry point
-void main()
+
+// Main function for streamline tracing
+void trace_streamline()
 {
 	mat4 MVP = Projection*Modelview;
 	vec4 p0 = gl_in[0].gl_Position;	
@@ -170,13 +201,8 @@ void main()
 	for( i=0; i < 5; i++ )
 	{		
 		// Integration
-	  #if   INTEGRATOR == 2
-		disp = integrate_RK4( x, 1.0, 4 ); // 4 RK4 steps
-	  #elif INTEGRATOR == 1
-		disp = integrate_Euler( x, 1.0, 5 ); // 5 Euler steps
-	  #else
-		disp = 0.25*get_warp(x); // 1 Euler step	
-	  #endif		
+		disp = integrate(x,1.0);
+		disp *= 5.0*0.2; // 1 / numSteps
 		x += disp;
 		
 	  #if   PROJECTION == 1
@@ -195,10 +221,48 @@ void main()
 		
 		// Emit vertex
 		gl_Position = MVP*vec4(px,1.0);
+		vertex_normal = vertex[0].normal;
 		vertex_color = get_color( float(i+1)/5.0 );
 			//vec4(abs(n),1.0);
+			//vec4(vec3(get_scalar(px)*8.0),1.0);
 		EmitVertex();		
 	}		
 
 	EndPrimitive();	
+}
+
+// Main function for mesh warping
+void displace_triangle()
+{
+	mat4 MVP = Projection*Modelview;
+	
+	// Displace triangle vertices
+	vec3 x;
+	vec3 disp;
+	for( int i=0; i < gl_in.length(); ++i )
+	{
+		// Integrate
+		x = gl_in[i].gl_Position.xyz;		
+		disp = integrate(x,1.0);
+		x += disp;
+		
+		// Emit vertex
+		gl_Position   = MVP*vec4(x,1.0);
+		vertex_normal = vertex[i].normal;
+		vertex_color  = vec4(0.7*vec3(abs(dot(vertex_normal,vec3(1.0,1.0,1.0)))),1.0);
+			//vec4( vertex_normal, 1.0 );
+			//vec4( voxelsize*gl_in[i].gl_Position.xyz, 1.0 );	
+		EmitVertex();
+	}
+	EndPrimitive();	
+}
+
+// Geometry shader entry point
+void main()
+{
+  #if   MODE==0
+	trace_streamline();
+  #elif MODE==1
+	displace_triangle();
+  #endif
 }

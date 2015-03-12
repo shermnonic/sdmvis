@@ -13,6 +13,82 @@
 
 #include "VolumeUtils.h"
 
+
+#ifdef USE_MESHTOOLS
+#include <meshtools.h>
+
+SimpleMesh::SimpleMesh()
+	: m_vao(0)
+{
+}
+
+bool SimpleMesh::load( const char* filename )
+{
+	meshtools::Mesh mesh;
+	if( !meshtools::loadMesh( mesh, filename ) )
+	{
+		return false;
+	}
+	meshtools::updateMeshVertexNormals( &mesh );
+
+	m_mb.clear();
+	m_mb.addFrame( &mesh );
+	return true;
+}
+
+void SimpleMesh::render()
+{
+	if( m_mb.numFrames() > 0 )
+	{
+		m_mb.draw();
+	}
+}
+
+void SimpleMesh::sanity()
+{
+	m_mb.sanity();
+
+	if( m_vao==0 )
+		glGenVertexArrays( 1, &m_vao );
+}
+
+void SimpleMesh::renderVAO( unsigned shaderProgram )
+{
+	if( m_mb.numFrames() == 0 )
+		return;
+
+	sanity();
+
+	GLuint vbo = m_mb.vbo();
+	GLuint ibo = m_mb.ibo();
+	
+	glBindVertexArray( m_vao );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );	
+	
+	GLint posAttrib=-1;		
+	glBindBuffer( GL_ARRAY_BUFFER, vbo );	
+	posAttrib = glGetAttribLocation( (GLuint)shaderProgram, "Position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+	
+	GLint normAttrib=-1;
+	normAttrib = glGetAttribLocation( shaderProgram, "Normal" );
+	glEnableVertexAttribArray( normAttrib );
+	glVertexAttribPointer( normAttrib, 3, GL_FLOAT, GL_FALSE, 0, 
+	                            (GLvoid*)(sizeof(float)*m_mb.numVertices()*3) );
+	
+	glDrawElements( GL_TRIANGLES, (GLsizei)m_mb.numIndices(), GL_UNSIGNED_INT, 0 );
+	
+	glDisableVertexAttribArray( posAttrib );
+	glDisableVertexAttribArray( normAttrib );
+
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );	
+}
+#endif // USE_MESHTOOLS
+
+
 /// Copy information from VolumeDataHeader to VolumeTextureManager::Data
 VolumeTextureManager::Data adapt( VolumeDataHeader* mhd )
 {
@@ -51,6 +127,13 @@ QString Viewer::helpString() const
 		"Mar. 2015");
 }
 
+QAction* createSeparator( QWidget* parent )
+{
+	QAction* sep = new QAction(parent);
+	sep->setSeparator( true );
+	return sep;
+}
+
 Viewer::Viewer( QWidget* parent )
 	: QGLViewer( parent )
 {
@@ -70,18 +153,21 @@ Viewer::Viewer( QWidget* parent )
 		*actLoadTemplate    = new QAction(tr("Load template..."),this),
 		*actLoadDeformation = new QAction(tr("Load deformation..."),this),
 		*actLoadSeedPoints  = new QAction(tr("Load seed points..."),this),
+		*actLoadMesh        = new QAction(tr("Load mesh..."),this),
 		*actSetIsovalue     = new QAction(tr("Set isovalue"),this);
 	connect( actLoadTemplate   , SIGNAL(triggered()), this, SLOT(loadTemplate()) );
 	connect( actLoadDeformation, SIGNAL(triggered()), this, SLOT(loadDeformation()) );
 	connect( actLoadSeedPoints , SIGNAL(triggered()), this, SLOT(loadSeedPoints()) );
+	connect( actLoadMesh       , SIGNAL(triggered()), this, SLOT(loadMesh()) );
 	connect( actSetIsovalue    , SIGNAL(triggered()), this, SLOT(setIsovalue()) );
 
-	QAction* sep0 = new QAction(this); sep0->setSeparator( true );
 	m_actions.push_back( actLoadTemplate );
 	m_actions.push_back( actLoadDeformation );	
 	m_actions.push_back( actLoadSeedPoints );
+	m_actions.push_back( actLoadMesh );
+	m_actions.push_back( createSeparator(this) );
 	m_actions.push_back( actSetIsovalue );
-	m_actions.push_back( sep0 );
+	m_actions.push_back( createSeparator(this) );
 	m_actions.push_back( actReloadShader );
 	m_actions.push_back( actEnableShader );
 }
@@ -97,6 +183,11 @@ void Viewer::init()
 
 	glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
 	glEnable( GL_LINE_SMOOTH );
+
+	GLfloat pos[4] = { 1.0,1.0,1.0,0.0 };
+	glLightfv( GL_LIGHT0, GL_POSITION, pos );
+
+	restoreStateFromFile();
 }
 
 void Viewer::destroyGL()
@@ -126,6 +217,12 @@ void Viewer::draw()
 	//glPushAttrib( GL_ALL_ATTRIB_BITS );
 	//glPushClientAttrib( GL_CLIENT_ALL_ATTRIB_BITS );
 
+
+	// -- Mesh
+
+	//m_mesh.render();
+
+
 	// Bind shader
 	GLuint shaderProgram = 0;
 	if( m_actEnableShader->isChecked() )
@@ -147,7 +244,15 @@ void Viewer::draw()
 		GL::CheckGLError("Viewer::draw() - Enable shader");
 	}
 
-	glDisable( GL_DEPTH_TEST );
+
+#if 1
+	// -- Displaced mesh
+	m_mesh.renderVAO( shaderProgram );
+
+#else
+	// -- Streamlines
+
+	//glDisable( GL_DEPTH_TEST );
 	glDisable( GL_LIGHTING );
 	glDisable( GL_CULL_FACE );
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -159,12 +264,15 @@ void Viewer::draw()
 	m_seed.render( shaderProgram );
 
 	glDisable( GL_BLEND );	
-	glEnable( GL_LIGHTING );
-	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_CULL_FACE );
-
+	glEnable( GL_LIGHTING );
+	//glEnable( GL_DEPTH_TEST );
+#endif
+	
+	
 	// Release shader (always safe)
 	m_slr.release();
+
 
 	//glPopClientAttrib();
 	//glPopAttrib();
@@ -235,6 +343,24 @@ void Viewer::loadSeedPoints()
 	}
 }
 
+void Viewer::loadMesh()
+{
+	QString filename = QFileDialog::getOpenFileName( this, 
+		tr("Load mesh"), m_baseDir, tr("Triangle mesh formats (*.obj *.ply *.off)") );
+
+	if( filename.isEmpty() )
+		return;
+
+	setBaseDir( filename );
+
+	if( !loadMesh( filename ) )
+	{
+		QMessageBox::warning( this, tr("Error loading mesh"),
+			tr("Error loading mesh from %1").arg(filename) );
+		return;
+	}
+}
+
 bool Viewer::loadTemplate( QString filename )
 {
 	GL::GLTexture* tex = loadVolume( filename );
@@ -271,6 +397,11 @@ bool Viewer::loadSeedPoints( QString filename )
 		return true;
 	}
 	return false;
+}
+
+bool Viewer::loadMesh( QString filename )
+{
+	return m_mesh.load( filename.toStdString().c_str() );
 }
 
 GL::GLTexture* Viewer::loadVolume( QString filename )

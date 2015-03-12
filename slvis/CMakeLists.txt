@@ -22,6 +22,8 @@ if( WIN32 )
 	ADD_DEFINITIONS(-DNOMINMAX )
 endif()
 
+set( USE_MESHTOOLS True )
+
 
 #---- Dependencies ------------------------------------------------------------
 
@@ -41,6 +43,40 @@ set(GLUTILS_SOURCES
 	${GLUTILS_PATH}/Misc/Filename.cpp )
 include_directories( ${GLUTILS_PATH} ${GLUTILS_PATH}/GL )
 message(STATUS "GLUTILS_PATH = ${GLUTILS_PATH}")
+
+set(WINTERMUTE_BASE "G:/Wintermute" CACHE PATH "path to authors custom wintermute/meshtools project")
+if( USE_MESHTOOLS )	
+	message(STATUS "Using meshtools library from WINTERMUTE_BASE = ${WINTERMUTE_BASE}")
+	include(${WINTERMUTE_BASE}/exports/meshtools-exports.cmake)
+	add_definitions(-DUSE_MESHTOOLS)
+	add_definitions(-DMESHTOOLS_WITHOUT_EIGEN_SUPPORT)
+	include_directories( ${WINTERMUTE_BASE}/wmute/trunk/source/meshspace/include )
+	set(MESHTOOLS_LIBRARIES
+		meshtools		
+	)
+endif()
+
+#---------------------
+# OpenMesh (optional, required for meshtools)
+#---------------------
+# Note: Alternatively one could also use FindOpenMesh.cmake
+set(OPENMESH_INCLUDE_PATH $ENV{OPENMESH_INCLUDE_PATH} CACHE PATH 
+	"Path to OpenMesh base directory.")
+set(OPENMESH_LIB_PATH     $ENV{OPENMESH_LIB_PATH}     CACHE PATH 
+	"Path to OpenMesh base directory.")
+	
+set(OPENMESH_LIBRARIES
+	optimized OpenMeshCore  debug OpenMeshCored
+	optimized OpenMeshTools debug OpenMeshToolsd
+)	
+include_directories(
+	${OPENMESH_INCLUDE_PATH}
+)
+link_directories(
+	${OPENMESH_LIB_PATH}
+)
+# OpenMesh\trunk\src\OpenMesh/Core/System/compiler.hh(108): fatal error C1189: #error :  "You have to define _USE_MATH_DEFINES in the compiler settings!"
+add_definitions(-D_USE_MATH_DEFINES)
 
 #-------------------
 # VTK
@@ -151,4 +187,6 @@ target_link_libraries( slvis
 	${QGLVIEWER_LIBRARIES}
 	${GLEW_LIBRARY}	
 	${VTK_LIBRARIES}
+	${MESHTOOLS_LIBRARIES} # optional, may be empty string
+	${OPENMESH_LIBRARIES}  # optional, may be empty string
 )

@@ -13,6 +13,39 @@
 class GLSLProgram;
 class QAction;
 
+#ifdef USE_MESHTOOLS
+#include <meshtools.h>
+#include <MeshBuffer.h>
+/**
+	Simple triangle mesh renderer.
+*/
+class SimpleMesh
+{
+public:
+	SimpleMesh();
+
+	bool load( const char* filename );
+	void render();
+	void renderVAO( unsigned shaderProgram );
+
+	//void initGL();
+	//void destroyGL();
+protected:
+	void sanity();
+private:
+	MeshBuffer m_mb;
+	unsigned m_vao;
+};
+#else
+// Dummy
+class SimpleMesh
+{
+public:
+	bool load( const char* filename ) { return true; }
+	void render() {}
+};
+#endif
+
 /**
 	Stand alone viewer widget for prototyping streamline rendering.	
 */
@@ -32,10 +65,12 @@ public slots:
 	void loadTemplate();
 	void loadDeformation();	
 	void loadSeedPoints();
+	void loadMesh();
 
 	bool loadTemplate( QString filename );
 	bool loadDeformation( QString filename );
 	bool loadSeedPoints( QString filename );
+	bool loadMesh( QString filename );
 
 	void setIsovalue();
 
@@ -64,6 +99,8 @@ private:
 	QString m_baseDir;
 
 	QAction* m_actEnableShader;
+
+	SimpleMesh m_mesh;
 };
 
 #endif // VIEWER_H

@@ -7,7 +7,7 @@
   <Display axisIsDrawn="false" gridIsDrawn="false" FPSIsDisplayed="false" cameraIsEdited="false"/>
   <Geometry fullScreen="false" width="1058" posX="-1185" height="735" posY="19"/>
   <Camera>
-    <Parameters fieldOfView="0.785398" sceneRadius="117.33" Type="PERSPECTIVE" zNearCoefficient="0.005" orthoCoef="0.00648844" zClippingCoefficient="1.73205">
+    <Parameters fieldOfView="0.785398" sceneRadius="117.33" Type="PERSPECTIVE" zNearCoefficient="0.005" orthoCoef="0.000101638" zClippingCoefficient="1.73205">
       <SceneCenter x="130.159" y="138.017" z="169.432"/>
     </Parameters>
     <Stereo focusDistance="283.258" physScreenWidth="0.5" IODist="0.062"/>

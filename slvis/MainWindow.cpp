@@ -52,7 +52,7 @@ void MainWindow::createUI()
 	menuFile = menuBar()->addMenu( tr("&File") );
 	menuFile->addAction( actQuit );
 
-	menuViewer = menuBar()->addMenu( tr("&Viewer") );
+	menuViewer = menuBar()->addMenu( tr("&Streamlines") );
 	menuViewer->addActions( m_viewer->getActions() );
 
 	// --- connections ---
