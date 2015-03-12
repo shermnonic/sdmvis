@@ -1,6 +1,24 @@
 // slvis streamline - geometry shader
 #version 150
 
+//------------------------------------------------------------------------------
+//  Config
+//------------------------------------------------------------------------------
+// Integrators
+// 0 - Euler, 1 step
+// 1 - Euler, 5 steps
+// 2 - RK4, 4 steps
+#define INTEGRATOR 0
+
+// Projection
+// 0 - None
+// 1 - Surface parallel
+// 2 - Surface parallel (Newton iter. to find closest isosurface)
+#define PROJECTION 1
+
+//------------------------------------------------------------------------------
+//  Variables
+//------------------------------------------------------------------------------
 layout(points) in;
 layout(line_strip, max_vertices=6) out;
 
@@ -14,17 +32,64 @@ out vec4 vertex_color;
 uniform mat4 Modelview;
 uniform mat4 Projection;
 
-//uniform sampler3D voltex;
-//uniform float     isovalue;
 uniform sampler3D warpfield;
+uniform sampler3D voltex;
+uniform float     isovalue;
+
+// FIXME: voxelsize also serves here as domain transform!
 const vec3 voxelsize = vec3( 1.0/200.0, 1.0/200.0, 1.0/400.0 );
 
+//------------------------------------------------------------------------------
+//  Scalar volume functions
+//------------------------------------------------------------------------------
+// Compute normal by central differences
+vec3 get_normal( vec3 x )
+{		
+	x *= voxelsize;  // Convert to [0,1] texture coordinates	
+	vec3 n = vec3(
+	  texture(voltex,x - vec3(voxelsize.x,0,0)).r - texture(voltex,x + vec3(voxelsize.x,0,0)).r, 
+	  texture(voltex,x - vec3(0,voxelsize.y,0)).r - texture(voltex,x + vec3(0,voxelsize.y,0)).r, 
+	  texture(voltex,x - vec3(0,0,voxelsize.z)).r - texture(voltex,x + vec3(0,0,voxelsize.z)).r
+	);	
+	return normalize(n);
+}
+
+float get_scalar( vec3 x )
+{
+	x *= voxelsize;
+	return texture(voltex,x).xyz;
+}
+
+float get_scalar_gradient( vec3 x, vec3 dir )
+{
+	x *= voxelsize;	// Convert position to [0,1] texture coordinates	
+	dir *= voxelsize; // Scale normalized direction to length of one voxel
+	return 0.5*(texture(voltex,x-dir).r - texture(voltex,x+dir).r);
+}
+
+// Returns point projected onto closest isosurface in given search direction
+vec3 project_to_isosurface( vec3 x, vec3 searchdir, float iso )
+{
+	// Newton iteration
+	float f, df;
+	int i;
+	for( i=0; i < 3; i++ ) // Use a fixed number of steps to avoid branching
+	{
+		f  = get_scalar( x );
+		df = get_scalar_gradient( x, searchdir );
+		x -= f / df;
+	}
+	return x;
+}
+
+//------------------------------------------------------------------------------
+//  Vector field functions
+//------------------------------------------------------------------------------
 // Return vectorfield at world space coordinates
 // Requires: warpfield, voxelsize
 vec3 get_warp( vec3 x )
 {
-	// Convert to [0,1] texture coordinates
-	x *= voxelsize;
+	x *= voxelsize;  // Convert to [0,1] texture coordinates
 	return texture(warpfield,x).xyz;
 }
 
@@ -70,6 +135,10 @@ vec3 integrate_Euler( vec3 x0, float sign, int steps )
 	return (x-x0);
 }
 
+//------------------------------------------------------------------------------
+//  Utility functions
+//------------------------------------------------------------------------------
+// Transfer function blue-to-yellow
 vec4 get_color( float t )
 {
 	const vec3 colA = vec3(0.0,0.0,1.0);
@@ -78,6 +147,9 @@ vec4 get_color( float t )
 	return vec4( col, 1.0 );
 }
 
+//------------------------------------------------------------------------------
+//  Main
+//------------------------------------------------------------------------------
 // Geometry shader entry point
 void main()
 {
@@ -90,17 +162,41 @@ void main()
 	EmitVertex();
 	
 	// Trace streamline
-	int i;
-	vec3 x = p0.xyz;
-	vec3 disp;
+	vec3 x = p0.xyz;   // Position on streamline
+	vec3 disp;         // Displacement
+	vec3 px = x;       // Projected position (e.g. on surface)
+	vec3 n;            // Normal (for projection)
+	int i;	
 	for( i=0; i < 5; i++ )
-	{	
-		disp = get_warp(x); // 1 Euler step
-		//disp = integrate_Euler( x, 1.0, 5 ); // 5 Euler steps
-		//disp = integrate_RK4( x, 1.0, 4 ); // 4 RK4 steps
+	{		
+		// Integration
+	  #if   INTEGRATOR == 2
+		disp = integrate_RK4( x, 1.0, 4 ); // 4 RK4 steps
+	  #elif INTEGRATOR == 1
+		disp = integrate_Euler( x, 1.0, 5 ); // 5 Euler steps
+	  #else
+		disp = 0.25*get_warp(x); // 1 Euler step	
+	  #endif		
 		x += disp;
-		gl_Position = MVP*vec4(x,1.0);
+		
+	  #if   PROJECTION == 1
+		// Project onto surface
+		n = get_normal( px );
+		disp -= dot(n,disp)*n;
+		px += disp;
+	  #elif PROJECTION == 2
+		n = get_normal( px );
+		disp -= dot(n,disp)*n;
+		px = project_to_isosurface( px+disp, -n, isovalue );
+	  #else
+		// No projection
+		px = x;
+	  #endif
+		
+		// Emit vertex
+		gl_Position = MVP*vec4(px,1.0);
 		vertex_color = get_color( float(i+1)/5.0 );
+			//vec4(abs(n),1.0);
 		EmitVertex();		
 	}		
 

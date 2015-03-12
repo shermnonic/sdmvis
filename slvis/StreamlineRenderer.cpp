@@ -12,7 +12,8 @@ using GL::GLSLProgram;
 StreamlineRenderer::StreamlineRenderer()
 : m_program(NULL),
   m_texVolume(NULL),
-  m_texWarpfield(NULL)
+  m_texWarpfield(NULL),
+  m_isovalue(0.f)
 {
 }
 
@@ -37,13 +38,22 @@ void StreamlineRenderer::bind()
 	if( !m_program ) return; // Sanity
 	m_program->bind();
 
+	if( m_uniforms["voltex"] && m_texVolume )
+	{
+		glUniform1i( m_uniforms["voltex"], 1 );
+		m_texVolume->Bind( 1 );
+	}
+
 	if( m_uniforms["warpfield"] && m_texWarpfield )
 	{
 		glUniform1i( m_uniforms["warpfield"], 0 );
 		m_texWarpfield->Bind( 0 );
 	}
 
-	glActiveTexture( GL_TEXTURE0 );
+	if( m_uniforms["isovalue"] )
+	{
+		glUniform1f( m_uniforms["isovalue"], m_isovalue );
+	}
 	
 	GL::checkGLError("StreamlineRenderer::bind()");
 }
@@ -51,6 +61,19 @@ void StreamlineRenderer::bind()
 void StreamlineRenderer::release()
 {
 	m_program->release();
+
+	if( m_texVolume )
+	{
+		glActiveTexture( GL_TEXTURE1 );
+		m_texVolume->Unbind();
+	}
+
+	if( m_texWarpfield )
+	{
+		glActiveTexture( GL_TEXTURE0 );
+		m_texWarpfield->Unbind();
+	}
+
 	GL::checkGLError("StreamlineRenderer::release()");
 }
 
