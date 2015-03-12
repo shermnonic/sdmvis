@@ -37,6 +37,8 @@ public slots:
 	bool loadDeformation( QString filename );
 	bool loadSeedPoints( QString filename );
 
+	void setIsovalue();
+
 protected:
 	/// Load MHD volume from disk, returns NULL on error otherwise returns 
 	/// texture pointer of texture already added to texture manager and uploaded

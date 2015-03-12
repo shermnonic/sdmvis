@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QFileInfo>
+#include <QInputDialog>
 
 #include <GL/GLSLProgram.h>
 #include <GL/GLError.h>
@@ -68,15 +69,18 @@ Viewer::Viewer( QWidget* parent )
 	QAction
 		*actLoadTemplate    = new QAction(tr("Load template..."),this),
 		*actLoadDeformation = new QAction(tr("Load deformation..."),this),
-		*actLoadSeedPoints  = new QAction(tr("Load seed points..."),this);
+		*actLoadSeedPoints  = new QAction(tr("Load seed points..."),this),
+		*actSetIsovalue     = new QAction(tr("Set isovalue"),this);
 	connect( actLoadTemplate   , SIGNAL(triggered()), this, SLOT(loadTemplate()) );
 	connect( actLoadDeformation, SIGNAL(triggered()), this, SLOT(loadDeformation()) );
 	connect( actLoadSeedPoints , SIGNAL(triggered()), this, SLOT(loadSeedPoints()) );
+	connect( actSetIsovalue    , SIGNAL(triggered()), this, SLOT(setIsovalue()) );
 
 	QAction* sep0 = new QAction(this); sep0->setSeparator( true );
 	m_actions.push_back( actLoadTemplate );
 	m_actions.push_back( actLoadDeformation );	
 	m_actions.push_back( actLoadSeedPoints );
+	m_actions.push_back( actSetIsovalue );
 	m_actions.push_back( sep0 );
 	m_actions.push_back( actReloadShader );
 	m_actions.push_back( actEnableShader );
@@ -90,6 +94,9 @@ void Viewer::init()
 
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 	glEnable( GL_POINT_SMOOTH );
+
+	glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
+	glEnable( GL_LINE_SMOOTH );
 }
 
 void Viewer::destroyGL()
@@ -115,6 +122,10 @@ void setShaderProgramDefaultMatrices( GLuint program )
 
 void Viewer::draw()
 {
+	//// QGLViewer workaround (does not fix text rendering bug)
+	//glPushAttrib( GL_ALL_ATTRIB_BITS );
+	//glPushClientAttrib( GL_CLIENT_ALL_ATTRIB_BITS );
+
 	// Bind shader
 	GLuint shaderProgram = 0;
 	if( m_actEnableShader->isChecked() )
@@ -139,11 +150,12 @@ void Viewer::draw()
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_LIGHTING );
 	glDisable( GL_CULL_FACE );
-	glBlendFunc( GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glEnable( GL_BLEND );
 	
-	glColor4f(1.f,1.f,1.f,1.f);
+	glColor4f(1.f,1.f,1.f,0.9f);
 	glPointSize( 3.f );
+	glLineWidth( 1.2f );
 	m_seed.render( shaderProgram );
 
 	glDisable( GL_BLEND );	
@@ -153,6 +165,9 @@ void Viewer::draw()
 
 	// Release shader (always safe)
 	m_slr.release();
+
+	//glPopClientAttrib();
+	//glPopAttrib();
 }
 
 void Viewer::reloadShaders()
@@ -301,6 +316,16 @@ GL::GLTexture* Viewer::loadVolume( QString filename )
 	return tex;
 }
 
+void Viewer::setIsovalue()
+{
+	bool ok;
+	double iso = QInputDialog::getDouble( this, tr("Set isovalue"), 
+		tr("Isovalue"), (double)m_slr.getIsovalue(), -1000.0, 12000.0, 1, &ok );
+	if( ok )
+	{
+		m_slr.setIsovalue( (float)iso );
+	}
+}
 
 void Viewer::updateBoundingBox()
 {
