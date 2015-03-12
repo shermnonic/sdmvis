@@ -43,7 +43,7 @@ void MainWindow::createUI()
 	actQuit->setStatusTip( tr("Quit application.") );
 	actQuit->setShortcut( tr("Ctrl+Q") );
 	
-	// --- build menu ---
+	// --- menu ---
 
 	QMenu
 		*menuFile,
@@ -54,6 +54,11 @@ void MainWindow::createUI()
 
 	menuViewer = menuBar()->addMenu( tr("&Streamlines") );
 	menuViewer->addActions( m_viewer->getActions() );
+
+	// --- toolbar ---
+
+	QToolBar* toolbar = addToolBar( tr("Streamlines") );
+	toolbar->addWidget( m_viewer->getControlWidget() );
 
 	// --- connections ---
 

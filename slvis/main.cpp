@@ -7,6 +7,7 @@
 #include <exception>
 
 #include "MainWindow.h"
+#include "Viewer.h"
 
 /// Derived QApplication to catch exceptions via notify()
 /// See http://stackoverflow.com/questions/4661883/qt-c-error-handling
@@ -57,6 +58,12 @@ int main( int argc, char* argv[] )
 
 	MainWindow mw;
 	mw.show();
+
+	// Parse command line options
+	if( argc > 1 ) mw.streamlineViewer()->loadSeedPoints ( QString::fromAscii(argv[1]) );
+	if( argc > 2 ) mw.streamlineViewer()->loadDeformation( QString::fromAscii(argv[2]) );
+	if( argc > 3 ) mw.streamlineViewer()->loadTemplate   ( QString::fromAscii(argv[3]) );
+	if( argc > 4 ) mw.streamlineViewer()->loadMesh       ( QString::fromAscii(argv[4]) );
 
 	return app.exec();;
 }

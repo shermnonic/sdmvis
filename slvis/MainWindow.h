@@ -14,6 +14,8 @@ public:
 	MainWindow();
 	~MainWindow();
 
+	Viewer* streamlineViewer() { return m_viewer; }
+
 private slots:
 	void destroy();
 

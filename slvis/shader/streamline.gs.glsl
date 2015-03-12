@@ -19,7 +19,7 @@
 // Mode
 // 0 - Streamline integration, input: seed pts, output: trajectory as line strip
 // 1 - Triangle displacement, input: tri, output: displaced tri
-#define MODE 1
+#define MODE <__opt_MODE__>
 
 //------------------------------------------------------------------------------
 //  Variables
@@ -47,7 +47,8 @@ uniform mat4 Projection;
 uniform sampler3D warpfield;
 uniform sampler3D voltex;
 uniform float     isovalue;
-uniform float     displacement;
+
+uniform float timescale;
 
 // FIXME: voxelsize also serves here as domain transform!
 const vec3 voxelsize = vec3( 1.0/200.0, 1.0/200.0, 1.0/400.0 );
@@ -202,7 +203,7 @@ void trace_streamline()
 	{		
 		// Integration
 		disp = integrate(x,1.0);
-		disp *= 5.0*0.2; // 1 / numSteps
+		disp *= timescale*0.2; // 1 / numSteps
 		x += disp;
 		
 	  #if   PROJECTION == 1
@@ -243,13 +244,21 @@ void displace_triangle()
 	{
 		// Integrate
 		x = gl_in[i].gl_Position.xyz;		
-		disp = integrate(x,1.0);
+		disp = integrate(x,timescale);
 		x += disp;
+		
+		// Dummy illumination
+		vec3 L = normalize(vec3(1.0,1.0,1.0));
+		float diffuse = abs(dot(vertex[i].normal,L)); // dual sided
+		vec3 color = 
+		    0.5*vec3(0.3) +  // ambient
+			0.7*diffuse*vec3(1.0,1.0,0.5); // diffuse, yellow 
+		
 		
 		// Emit vertex
 		gl_Position   = MVP*vec4(x,1.0);
 		vertex_normal = vertex[i].normal;
-		vertex_color  = vec4(0.7*vec3(abs(dot(vertex_normal,vec3(1.0,1.0,1.0)))),1.0);
+		vertex_color  = vec4(color,0.5);
 			//vec4( vertex_normal, 1.0 );
 			//vec4( voxelsize*gl_in[i].gl_Position.xyz, 1.0 );	
 		EmitVertex();
