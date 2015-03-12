@@ -27,7 +27,14 @@ namespace GL {
 class StreamlineRenderer
 {
 public:	
-	StreamlineRenderer();
+	enum Modes 
+	{
+		StreamlineShader,
+		MeshwarpShader
+	};
+
+	StreamlineRenderer( int mode=StreamlineShader );
+	void setMode( int mode );
 
 	bool initGL();
 	void destroyGL();
@@ -46,9 +53,14 @@ public:
 	void setIsovalue( float iso ) { m_isovalue = iso; }
 	float getIsovalue() const { return m_isovalue; }
 
+	void setTimescale( float ts ) { m_timescale = ts; }
+	float getTimescale() const { return m_timescale; }
+
 	GL::GLSLProgram* getProgram() { return m_program; }
 
 private:
+	int m_mode;
+
 	std::map< std::string, int > m_uniforms; ///< Uniform locations
 
 	GL::GLSLProgram* m_program;
@@ -56,6 +68,7 @@ private:
 	GL::GLTexture* m_texWarpfield;
 
 	float m_isovalue; ///< Isovalue to trace in texVolume
+	float m_timescale; ///< End-time of integration (negative for backwards)
 };
 
 #endif // STREAMLINERENDERER_H

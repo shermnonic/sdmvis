@@ -7,6 +7,9 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QInputDialog>
+#include <QDoubleSpinBox>
+#include <QFormLayout>
+#include <QWidget>
 
 #include <GL/GLSLProgram.h>
 #include <GL/GLError.h>
@@ -137,6 +140,8 @@ QAction* createSeparator( QWidget* parent )
 Viewer::Viewer( QWidget* parent )
 	: QGLViewer( parent )
 {
+	// -- Actions
+
 	QAction
 		*actReloadShader = new QAction(tr("Reload shader"),this),
 		*actEnableShader = new QAction(tr("Enable shader"),this);
@@ -154,29 +159,53 @@ Viewer::Viewer( QWidget* parent )
 		*actLoadDeformation = new QAction(tr("Load deformation..."),this),
 		*actLoadSeedPoints  = new QAction(tr("Load seed points..."),this),
 		*actLoadMesh        = new QAction(tr("Load mesh..."),this),
-		*actSetIsovalue     = new QAction(tr("Set isovalue"),this);
+		*actSetIsovalue     = new QAction(tr("Set isovalue"),this),
+		*actShowWarpedMesh  = new QAction(tr("Show warped mesh"),this);
 	connect( actLoadTemplate   , SIGNAL(triggered()), this, SLOT(loadTemplate()) );
 	connect( actLoadDeformation, SIGNAL(triggered()), this, SLOT(loadDeformation()) );
 	connect( actLoadSeedPoints , SIGNAL(triggered()), this, SLOT(loadSeedPoints()) );
 	connect( actLoadMesh       , SIGNAL(triggered()), this, SLOT(loadMesh()) );
 	connect( actSetIsovalue    , SIGNAL(triggered()), this, SLOT(setIsovalue()) );
 
+	actShowWarpedMesh->setCheckable( true );
+	actShowWarpedMesh->setChecked( true );
+	
+	m_actShowWarpedMesh = actShowWarpedMesh;
+
 	m_actions.push_back( actLoadTemplate );
 	m_actions.push_back( actLoadDeformation );	
 	m_actions.push_back( actLoadSeedPoints );
 	m_actions.push_back( actLoadMesh );
 	m_actions.push_back( createSeparator(this) );
+	m_actions.push_back( actShowWarpedMesh );
 	m_actions.push_back( actSetIsovalue );
 	m_actions.push_back( createSeparator(this) );
 	m_actions.push_back( actReloadShader );
 	m_actions.push_back( actEnableShader );
+
+	// -- Other GUI
+
+	m_spinTimescale = new QDoubleSpinBox;
+	m_spinTimescale->setRange( -10.0, +10.0 );
+	m_spinTimescale->setSingleStep( 0.1 );
+	m_spinTimescale->setValue( (double)m_slr[0].getTimescale() );
+
+	connect( m_spinTimescale, SIGNAL(valueChanged(double)), this, SLOT(setTimescale(double)) );
+
+	QFormLayout* formLayout = new QFormLayout;
+	formLayout->addRow(tr("timescale"),m_spinTimescale);
+	m_controlWidget = new QWidget;
+	m_controlWidget->setLayout( formLayout );
 }
 
 void Viewer::init()
 {
 	qglutils::initializeGL();	
 	m_seed.initGL();
-	m_slr.initGL();
+	m_slr[0].setMode( StreamlineRenderer::StreamlineShader );
+	m_slr[0].initGL();
+	m_slr[1].setMode( StreamlineRenderer::MeshwarpShader );
+	m_slr[1].initGL();
 
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 	glEnable( GL_POINT_SMOOTH );
@@ -193,7 +222,8 @@ void Viewer::init()
 void Viewer::destroyGL()
 {
 	makeCurrent();
-	m_slr.destroyGL();
+	m_slr[0].destroyGL();
+	m_slr[1].destroyGL();
 	m_seed.destroyGL();
 	m_vtm.destroy();
 }
@@ -211,68 +241,72 @@ void setShaderProgramDefaultMatrices( GLuint program )
 	glUniformMatrix4fv( locProjection, 1, GL_FALSE, projection );
 }
 
-void Viewer::draw()
+unsigned Viewer::bindShader( int mode )
 {
-	//// QGLViewer workaround (does not fix text rendering bug)
-	//glPushAttrib( GL_ALL_ATTRIB_BITS );
-	//glPushClientAttrib( GL_CLIENT_ALL_ATTRIB_BITS );
-
-
-	// -- Mesh
-
-	//m_mesh.render();
-
-
-	// Bind shader
 	GLuint shaderProgram = 0;
 	if( m_actEnableShader->isChecked() )
 	{
-		m_slr.bind();
+		m_slr[mode].bind();
 
-		shaderProgram = m_slr.getProgram()->getProgramHandle();
+		shaderProgram = m_slr[mode].getProgram()->getProgramHandle();
 
 		setShaderProgramDefaultMatrices( shaderProgram );
 
 		// DEBUG: Validate
 		if( !GL::GLSLProgram::validate( shaderProgram ) )
 		{
-			std::cerr << "Viewer::draw() - "
+			std::cerr << "Viewer::bindShader() - "
 				"Invalid GLSL program! Info log:" << std::endl
 				<< GL::GLSLProgram::getProgramLog( shaderProgram );
 		}
-
-		GL::CheckGLError("Viewer::draw() - Enable shader");
+		GL::CheckGLError("Viewer::bindShader() - Enable shader");
 	}
+	return (unsigned)shaderProgram;
+}
 
+void Viewer::draw()
+{
+	//// QGLViewer workaround (does not fix text rendering bug)
+	//glPushAttrib( GL_ALL_ATTRIB_BITS );
+	//glPushClientAttrib( GL_CLIENT_ALL_ATTRIB_BITS );
 
-#if 1
-	// -- Displaced mesh
-	m_mesh.renderVAO( shaderProgram );
+	unsigned program;
 
-#else
-	// -- Streamlines
-
-	//glDisable( GL_DEPTH_TEST );
-	glDisable( GL_LIGHTING );
-	glDisable( GL_CULL_FACE );
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glEnable( GL_BLEND );
+
+	// -- Reference mesh
+
+	glColor4f(.5f,.5f,1.f,0.5f);
+	m_mesh.render();
+
+	// -- Streamlines  (draws seed points if shaders are disabled)
+
+	program = bindShader(0);
+
+	glDisable( GL_LIGHTING );
+	glDisable( GL_CULL_FACE );	
 	
 	glColor4f(1.f,1.f,1.f,0.9f);
 	glPointSize( 3.f );
 	glLineWidth( 1.2f );
-	m_seed.render( shaderProgram );
+	m_seed.render( program );
 
-	glDisable( GL_BLEND );	
 	glEnable( GL_CULL_FACE );
-	glEnable( GL_LIGHTING );
-	//glEnable( GL_DEPTH_TEST );
-#endif
-	
-	
-	// Release shader (always safe)
-	m_slr.release();
+	glEnable( GL_LIGHTING );	
 
+	m_slr[0].release();
+
+	// -- Warped mesh  (requires shaders enabled)
+
+	if( m_actShowWarpedMesh->isChecked() && m_actEnableShader->isChecked() )
+	{
+		program = bindShader(1);
+		m_mesh.renderVAO( program );
+		m_slr[1].release();
+	}
+
+	glDisable( GL_BLEND );
 
 	//glPopClientAttrib();
 	//glPopAttrib();
@@ -280,7 +314,8 @@ void Viewer::draw()
 
 void Viewer::reloadShaders()
 {
-	m_slr.reloadShadersFromDisk();
+	m_slr[0].reloadShadersFromDisk();
+	m_slr[1].reloadShadersFromDisk();
 }
 
 void Viewer::setBaseDir( QString filename )
@@ -368,10 +403,11 @@ bool Viewer::loadTemplate( QString filename )
 		return false;
 
 	// Remove old texture from manager (if any)
-	m_vtm.erase( m_slr.getVolume() );
+	m_vtm.erase( m_slr[0].getVolume() );
 
-	// Set new texture
-	m_slr.setVolume( tex );
+	// Set new texture (synchronized between all StreamlineRenderer instances)
+	m_slr[0].setVolume( tex );
+	m_slr[1].setVolume( tex );
 	return true;
 }
 
@@ -382,10 +418,11 @@ bool Viewer::loadDeformation( QString filename )
 		return false;
 
 	// Remove old texture from manager (if any)
-	m_vtm.erase( m_slr.getWarpfield() );
+	m_vtm.erase( m_slr[0].getWarpfield() );
 
-	// Set new texture
-	m_slr.setWarpfield( tex );
+	// Set new texture (synchronized between all StreamlineRenderer instances)
+	m_slr[0].setWarpfield( tex );
+	m_slr[1].setWarpfield( tex );
 	return true;
 }
 
@@ -451,11 +488,21 @@ void Viewer::setIsovalue()
 {
 	bool ok;
 	double iso = QInputDialog::getDouble( this, tr("Set isovalue"), 
-		tr("Isovalue"), (double)m_slr.getIsovalue(), -1000.0, 12000.0, 1, &ok );
+		tr("Isovalue"), (double)m_slr[0].getIsovalue(), -1000.0, 12000.0, 1, &ok );
 	if( ok )
 	{
-		m_slr.setIsovalue( (float)iso );
+		m_slr[0].setIsovalue( (float)iso );
 	}
+}
+
+void Viewer::setTimescale( double val )
+{
+	// Both programs have synchronized timescale
+	m_slr[0].setTimescale( (float)val );
+	m_slr[1].setTimescale( (float)val );
+
+	// Render
+	updateGL();
 }
 
 void Viewer::updateBoundingBox()

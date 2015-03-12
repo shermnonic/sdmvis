@@ -4,17 +4,63 @@
 #include <GL/GLTexture.h>
 #include <GL/GLError.h>
 #include <iostream>
+#include <string>
+#include <sstream>
 
 using std::cerr;
 using std::endl;
 using GL::GLSLProgram;
 
-StreamlineRenderer::StreamlineRenderer()
+//------------------------------------------------------------------------------
+//  string utility function
+//------------------------------------------------------------------------------
+
+int string_replace( std::string& text, std::string marker, const char* replacement );
+int string_replace( std::string& s, std::string marker, std::string replacement );
+
+int string_replace( std::string& text, std::string marker, const char* replacement )
+{
+	std::string repl_s( replacement );
+	return string_replace( text, marker, repl_s );
+}
+
+int string_replace( std::string& s, std::string marker, std::string replacement )
+{
+	int num_replacements = 0;
+	std::size_t pos = s.find( marker );
+	while( pos != std::string::npos )
+	{
+		s.replace( pos, marker.length(), replacement );		
+		num_replacements++;
+		pos = s.find( marker );
+	}
+	return num_replacements;
+}
+
+std::string string_from_number( int i )
+{
+	std::stringstream ss;
+	ss << i;
+	return ss.str();
+}
+
+//------------------------------------------------------------------------------
+//  StreamlineRenderer
+//------------------------------------------------------------------------------
+
+StreamlineRenderer::StreamlineRenderer( int mode )
 : m_program(NULL),
   m_texVolume(NULL),
   m_texWarpfield(NULL),
-  m_isovalue(0.f)
+  m_isovalue(0.f),
+  m_timescale(1.f)
 {
+	setMode(mode);
+}
+
+void StreamlineRenderer::setMode( int mode )
+{
+	m_mode = mode;
 }
 
 bool StreamlineRenderer::initGL()
@@ -54,6 +100,11 @@ void StreamlineRenderer::bind()
 	{
 		glUniform1f( m_uniforms["isovalue"], m_isovalue );
 	}
+
+	if( m_uniforms["timescale"] )
+	{
+		glUniform1f( m_uniforms["timescale"], m_timescale );
+	}
 	
 	GL::checkGLError("StreamlineRenderer::bind()");
 }
@@ -77,28 +128,78 @@ void StreamlineRenderer::release()
 	GL::checkGLError("StreamlineRenderer::release()");
 }
 
+std::string read_shader( const char* filename )
+{
+	char* buf = GL::GLSLProgram::read_shader_from_disk( filename );
+	if( !buf )
+		return "";
+	std::string source( buf );
+	delete [] buf;
+	return source;
+}
+
 void StreamlineRenderer::reloadShadersFromDisk()
 {
 	if( !m_program ) return; // Sanity
 
+	using std::string;
+
+	string filenames[3] = 
+	{
+		"shader/streamline.vs.glsl",
+		"shader/streamline.gs.glsl",
+		"shader/streamline.fs.glsl" 
+	};
+	enum SourceTypes { 
+		VertexShader, 
+		GeometryShader, 
+		FragmentShader 
+	};
+
 	// Reset
 	m_uniforms.clear();
 
+	// Load and preprocess	
+	string sources[3];
+	for( int i=0; i < 3; i++ )
+	{
+		// Load source code
+		string source = read_shader( filenames[i].c_str() );
+		if( source.empty() )
+		{
+			cerr << "StreamlineRenderer::reloadShadersFromDisk() : "
+				"Loading streamline shaders failed!" << endl;
+			return;
+		}
+
+		// Preprocess	
+		string_replace( source, "<__opt_MODE__>", string_from_number(m_mode) );
+
+		// Store
+		sources[i] = source;
+	}
+
 	// Load and compile
-	if( !m_program->load_from_disk( 
-		"shader/streamline.vs.glsl",
-		"shader/streamline.gs.glsl",
-		"shader/streamline.fs.glsl" ) )
+	if( !m_program->load( 
+			sources[VertexShader], 
+			sources[GeometryShader], 
+			sources[FragmentShader] ) )
 	{
 		cerr << "StreamlineRenderer::reloadShadersFromDisk() : "
-			"Reloading streamline shaders failed!" << endl;
+			"Compilation/linking of streamline shaders failed!" << endl;
 		return;
 	}
 
 	// Uniform locations
-	m_uniforms["voltex"   ] = m_program->getUniformLocation("voltex");
-	m_uniforms["warpfield"] = m_program->getUniformLocation("warpfield");
-	m_uniforms["isovalue" ] = m_program->getUniformLocation("isovalue");
+	string uniformNames[4] =
+	{
+		"voltex",
+		"warpfield",
+		"isovalue",
+		"timescale"
+	};
+	for( int i=0; i < 4; i++ )
+		m_uniforms[uniformNames[i]] = m_program->getUniformLocation(uniformNames[i].c_str());
 
 	GL::checkGLError("StreamlineRenderer::reloadShadersFromDisk()");
 }

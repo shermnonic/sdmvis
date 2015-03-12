@@ -12,6 +12,7 @@
 
 class GLSLProgram;
 class QAction;
+class QDoubleSpinBox;
 
 #ifdef USE_MESHTOOLS
 #include <meshtools.h>
@@ -58,6 +59,8 @@ public:
 
 	QList<QAction*> getActions() { return m_actions; }
 
+	QWidget* getControlWidget() { return m_controlWidget; }
+
 public slots:
 	void destroyGL();
 	void reloadShaders();
@@ -73,6 +76,7 @@ public slots:
 	bool loadMesh( QString filename );
 
 	void setIsovalue();
+	void setTimescale( double );
 
 protected:
 	/// Load MHD volume from disk, returns NULL on error otherwise returns 
@@ -91,16 +95,23 @@ protected:
 
 	void updateBoundingBox();
 
+	/// Returns GLSL program handle, mode is index into m_slr array
+	unsigned bindShader( int mode );
+
 private:
+	// UI
 	QList<QAction*> m_actions;
-	StreamlineRenderer   m_slr;
-	VolumeTextureManager m_vtm;
-	PointSamples         m_seed;
+	QAction*        m_actEnableShader;
+	QAction*        m_actShowWarpedMesh;
+	QDoubleSpinBox* m_spinTimescale;
+	QWidget*        m_controlWidget;
 	QString m_baseDir;
 
-	QAction* m_actEnableShader;
-
-	SimpleMesh m_mesh;
+	// Rendering
+	StreamlineRenderer   m_slr[2];
+	VolumeTextureManager m_vtm;
+	PointSamples         m_seed;
+	SimpleMesh           m_mesh;
 };
 
 #endif // VIEWER_H
