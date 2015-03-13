@@ -17,8 +17,8 @@ namespace GL {
 	Seed points for streamlines are rendered outside this class. In this class
 	integration of streamlines is then performed in the geometry shader. 
 	Stationary velocity fields, or an affine combination of multiple ones, are	
-	integrated on-the-fly. The integrated trajectory is projected locally on an 
-	isosurface of a given scalar volume.
+	integrated on-the-fly. The integrated trajectory can be projected locally on 
+	an isosurface of a given scalar volume.
 
 	@TODO Refactor StreamlineRenderer to StreamlineShader ?
 
@@ -30,7 +30,8 @@ public:
 	enum Modes 
 	{
 		StreamlineShader,
-		MeshwarpShader
+		MeshwarpShader,
+		ProjectedStreamlineShader
 	};
 
 	StreamlineRenderer( int mode=StreamlineShader );

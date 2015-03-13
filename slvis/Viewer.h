@@ -99,16 +99,24 @@ protected:
 	unsigned bindShader( int mode );
 
 private:
+	enum VisibilityItems
+	{
+		Streamlines,		
+		WarpedMesh,
+		ReferenceMesh,
+		ProjectedStreamlines
+	};
+
 	// UI
 	QList<QAction*> m_actions;
 	QAction*        m_actEnableShader;
-	QAction*        m_actShowWarpedMesh;
+	QList<QAction*> m_itemVisibilityActions;
 	QDoubleSpinBox* m_spinTimescale;
 	QWidget*        m_controlWidget;
 	QString m_baseDir;
 
 	// Rendering
-	StreamlineRenderer   m_slr[2];
+	StreamlineRenderer   m_slr[3];
 	VolumeTextureManager m_vtm;
 	PointSamples         m_seed;
 	SimpleMesh           m_mesh;

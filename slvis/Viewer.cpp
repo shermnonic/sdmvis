@@ -160,28 +160,42 @@ Viewer::Viewer( QWidget* parent )
 		*actLoadSeedPoints  = new QAction(tr("Load seed points..."),this),
 		*actLoadMesh        = new QAction(tr("Load mesh..."),this),
 		*actSetIsovalue     = new QAction(tr("Set isovalue"),this),
-		*actShowWarpedMesh  = new QAction(tr("Show warped mesh"),this);
+		*actShowWarpedMesh  = new QAction(tr("Show warped mesh"),this),
+		*actShowStreamlines = new QAction(tr("Show streamlines"),this),
+		*actShowMesh        = new QAction(tr("Show reference mesh"),this);
 	connect( actLoadTemplate   , SIGNAL(triggered()), this, SLOT(loadTemplate()) );
 	connect( actLoadDeformation, SIGNAL(triggered()), this, SLOT(loadDeformation()) );
 	connect( actLoadSeedPoints , SIGNAL(triggered()), this, SLOT(loadSeedPoints()) );
 	connect( actLoadMesh       , SIGNAL(triggered()), this, SLOT(loadMesh()) );
 	connect( actSetIsovalue    , SIGNAL(triggered()), this, SLOT(setIsovalue()) );
 
-	actShowWarpedMesh->setCheckable( true );
-	actShowWarpedMesh->setChecked( true );
-	
-	m_actShowWarpedMesh = actShowWarpedMesh;
+	QStringList itemNames;
+	itemNames 
+		<< tr("streamlines") 
+		<< tr("warped mesh") 
+		<< tr("reference mesh")	
+		<< tr("projected streamlines");
+	for( int i=0; i < 4; i++ )
+	{
+		QAction* visAct = new QAction(tr("Show %1").arg(itemNames.at(i)),this);
+		visAct->setCheckable( true );
+		visAct->setChecked( true );
+		m_itemVisibilityActions.push_back( visAct );
+	}
+	m_itemVisibilityActions[ProjectedStreamlines]->setChecked( false );
 
 	m_actions.push_back( actLoadTemplate );
 	m_actions.push_back( actLoadDeformation );	
 	m_actions.push_back( actLoadSeedPoints );
 	m_actions.push_back( actLoadMesh );
 	m_actions.push_back( createSeparator(this) );
-	m_actions.push_back( actShowWarpedMesh );
 	m_actions.push_back( actSetIsovalue );
 	m_actions.push_back( createSeparator(this) );
 	m_actions.push_back( actReloadShader );
 	m_actions.push_back( actEnableShader );
+	m_actions.push_back( createSeparator(this) );
+	for( int i=0; i < m_itemVisibilityActions.size(); i++ )
+		m_actions.push_back( m_itemVisibilityActions.at(i) );
 
 	// -- Other GUI
 
@@ -206,6 +220,8 @@ void Viewer::init()
 	m_slr[0].initGL();
 	m_slr[1].setMode( StreamlineRenderer::MeshwarpShader );
 	m_slr[1].initGL();
+	m_slr[2].setMode( StreamlineRenderer::ProjectedStreamlineShader );
+	m_slr[2].initGL();
 
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 	glEnable( GL_POINT_SMOOTH );
@@ -224,6 +240,7 @@ void Viewer::destroyGL()
 	makeCurrent();
 	m_slr[0].destroyGL();
 	m_slr[1].destroyGL();
+	m_slr[2].destroyGL();
 	m_seed.destroyGL();
 	m_vtm.destroy();
 }
@@ -277,29 +294,57 @@ void Viewer::draw()
 
 	// -- Reference mesh
 
-	glColor4f(.5f,.5f,1.f,0.5f);
-	m_mesh.render();
+	if( m_itemVisibilityActions[ReferenceMesh]->isChecked() )
+	{
+		glColor4f(.5f,.5f,1.f,0.5f);
+		m_mesh.render();
+	}	
+
+	// -- Projected streamlines
+
+	if( m_itemVisibilityActions[ProjectedStreamlines]->isChecked() &&
+		m_actEnableShader->isChecked() )
+	{
+		program = bindShader(2);
+
+		glDisable( GL_LIGHTING );
+		glDisable( GL_CULL_FACE );	
+	
+		glColor4f(1.f,1.f,1.f,0.9f);
+		glPointSize( 3.f );
+		glLineWidth( 1.2f );
+		m_seed.render( program );
+
+		glEnable( GL_CULL_FACE );
+		glEnable( GL_LIGHTING );	
+
+		m_slr[2].release();
+	}
 
 	// -- Streamlines  (draws seed points if shaders are disabled)
 
-	program = bindShader(0);
+	if( m_itemVisibilityActions[Streamlines]->isChecked() )
+	{
+		program = bindShader(0);
 
-	glDisable( GL_LIGHTING );
-	glDisable( GL_CULL_FACE );	
+		glDisable( GL_LIGHTING );
+		glDisable( GL_CULL_FACE );	
 	
-	glColor4f(1.f,1.f,1.f,0.9f);
-	glPointSize( 3.f );
-	glLineWidth( 1.2f );
-	m_seed.render( program );
+		glColor4f(1.f,1.f,1.f,0.9f);
+		glPointSize( 3.f );
+		glLineWidth( 1.2f );
+		m_seed.render( program );
 
-	glEnable( GL_CULL_FACE );
-	glEnable( GL_LIGHTING );	
+		glEnable( GL_CULL_FACE );
+		glEnable( GL_LIGHTING );	
 
-	m_slr[0].release();
+		m_slr[0].release();
+	}
 
 	// -- Warped mesh  (requires shaders enabled)
 
-	if( m_actShowWarpedMesh->isChecked() && m_actEnableShader->isChecked() )
+	if( m_itemVisibilityActions[WarpedMesh]->isChecked() && 
+		m_actEnableShader->isChecked() )
 	{
 		program = bindShader(1);
 		m_mesh.renderVAO( program );
@@ -307,6 +352,7 @@ void Viewer::draw()
 	}
 
 	glDisable( GL_BLEND );
+	glColor4f(1.f,1.f,1.f,1.f);
 
 	//glPopClientAttrib();
 	//glPopAttrib();
@@ -316,6 +362,7 @@ void Viewer::reloadShaders()
 {
 	m_slr[0].reloadShadersFromDisk();
 	m_slr[1].reloadShadersFromDisk();
+	m_slr[2].reloadShadersFromDisk();
 }
 
 void Viewer::setBaseDir( QString filename )
@@ -408,6 +455,7 @@ bool Viewer::loadTemplate( QString filename )
 	// Set new texture (synchronized between all StreamlineRenderer instances)
 	m_slr[0].setVolume( tex );
 	m_slr[1].setVolume( tex );
+	m_slr[2].setVolume( tex );
 	return true;
 }
 
@@ -423,6 +471,7 @@ bool Viewer::loadDeformation( QString filename )
 	// Set new texture (synchronized between all StreamlineRenderer instances)
 	m_slr[0].setWarpfield( tex );
 	m_slr[1].setWarpfield( tex );
+	m_slr[2].setWarpfield( tex );
 	return true;
 }
 
@@ -492,6 +541,8 @@ void Viewer::setIsovalue()
 	if( ok )
 	{
 		m_slr[0].setIsovalue( (float)iso );
+		m_slr[1].setIsovalue( (float)iso );
+		m_slr[2].setIsovalue( (float)iso );
 	}
 }
 
@@ -500,6 +551,7 @@ void Viewer::setTimescale( double val )
 	// Both programs have synchronized timescale
 	m_slr[0].setTimescale( (float)val );
 	m_slr[1].setTimescale( (float)val );
+	m_slr[2].setTimescale( (float)val );
 
 	// Render
 	updateGL();

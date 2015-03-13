@@ -84,24 +84,24 @@ void StreamlineRenderer::bind()
 	if( !m_program ) return; // Sanity
 	m_program->bind();
 
-	if( m_uniforms["voltex"] && m_texVolume )
+	if( m_uniforms["voltex"]>=0 && m_texVolume )
 	{
 		glUniform1i( m_uniforms["voltex"], 1 );
 		m_texVolume->Bind( 1 );
 	}
 
-	if( m_uniforms["warpfield"] && m_texWarpfield )
+	if( m_uniforms["warpfield"]>=0 && m_texWarpfield )
 	{
 		glUniform1i( m_uniforms["warpfield"], 0 );
 		m_texWarpfield->Bind( 0 );
 	}
 
-	if( m_uniforms["isovalue"] )
+	if( m_uniforms["isovalue"]>=0 )
 	{
 		glUniform1f( m_uniforms["isovalue"], m_isovalue );
 	}
 
-	if( m_uniforms["timescale"] )
+	if( m_uniforms["timescale"]>=0 )
 	{
 		glUniform1f( m_uniforms["timescale"], m_timescale );
 	}
