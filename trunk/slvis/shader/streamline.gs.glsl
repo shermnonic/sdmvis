@@ -4,6 +4,12 @@
 //------------------------------------------------------------------------------
 //  Config
 //------------------------------------------------------------------------------
+// Mode
+// 0 - Streamline integration, input: seed pts, output: trajectory as line strip
+// 1 - Triangle displacement, input: tri, output: displaced tri
+// 2 - Projected streamline integration (like mode 0 but with projection)
+#define MODE <__opt_MODE__>
+
 // Integrators
 // 0 - Euler, 1 step
 // 1 - Euler, 5 steps
@@ -14,19 +20,18 @@
 // 0 - None
 // 1 - Surface parallel
 // 2 - Surface parallel (Newton iter. to find closest isosurface)
-#define PROJECTION 0
-
-// Mode
-// 0 - Streamline integration, input: seed pts, output: trajectory as line strip
-// 1 - Triangle displacement, input: tri, output: displaced tri
-#define MODE <__opt_MODE__>
+#if MODE == 2
+	#define PROJECTION 2
+#else
+	#define PROJECTION 0
+#endif
 
 //------------------------------------------------------------------------------
 //  Variables
 //------------------------------------------------------------------------------
-#if   MODE==0
+#if   MODE==0 || MODE==2
 layout(points) in;
-layout(line_strip, max_vertices=6) out;
+layout(line_strip, max_vertices=11) out;
 #elif MODE==1
 layout(triangles) in;
 layout(triangle_strip, max_vertices=3) out;
@@ -77,8 +82,8 @@ float get_scalar( vec3 x )
 float get_scalar_gradient( vec3 x, vec3 dir )
 {
 	x *= voxelsize;	// Convert position to [0,1] texture coordinates	
-	dir *= 1.5*voxelsize; // Scale normalized direction to length of one voxel
-	return 0.5*(texture(voltex,x-dir).r - texture(voltex,x+dir).r);
+	dir *= 2.0*voxelsize; // Scale normalized direction to length of one voxel
+	return 0.25*(texture(voltex,x-dir).r - texture(voltex,x+dir).r);
 }
 
 // Returns point projected onto closest isosurface in given search direction
@@ -87,13 +92,13 @@ vec3 project_to_isosurface( vec3 x, vec3 searchdir, float iso )
 	// Newton iteration
 	float f, df;
 	int i;
-	for( i=0; i < 3; i++ ) // Use a fixed number of steps to avoid branching
+	for( i=0; i < 10; i++ ) // Use a fixed number of steps to avoid branching
 	{
-		f  = get_scalar( x );
+		f  = iso - get_scalar( x );
 		df = get_scalar_gradient( x, searchdir );
-		if( abs(df) < 0.01 )
-			break;
-		x -= 0.1*(f / df);
+		float steplength = clamp( f / df, -1.0, +1.0 );
+		vec3 step = 0.5*steplength*searchdir;
+		x -= step;
 	}
 	return x;
 }
@@ -157,8 +162,13 @@ vec3 integrate_Euler( vec3 x0, float sign, int steps )
 // Transfer function blue-to-yellow
 vec4 get_color( float t )
 {
+#if MODE == 2
+	const vec3 colA = vec3(0.0);
+	const vec3 colB = vec3(0.3);
+#else	
 	const vec3 colA = vec3(0.0,0.0,1.0);
 	const vec3 colB = vec3(1.0,1.0,0.0);
+#endif
 	vec3 col = mix( colA, colB, t );
 	return vec4( col, 1.0 );
 }
@@ -193,17 +203,20 @@ void trace_streamline()
 	vertex_color = get_color(0.0); // vertex[0].color;
 	EmitVertex();
 	
+	const int numsteps = 10;
+	const float dt = 1.0 / float(numsteps);
+	
 	// Trace streamline
 	vec3 x = p0.xyz;   // Position on streamline
 	vec3 disp;         // Displacement
 	vec3 px = x;       // Projected position (e.g. on surface)
 	vec3 n;            // Normal (for projection)
 	int i;	
-	for( i=0; i < 5; i++ )
+	for( i=0; i < numsteps; i++ )
 	{		
 		// Integration
 		disp = integrate(x,1.0);
-		disp *= timescale*0.2; // 1 / numSteps
+		disp *= timescale*dt;
 		x += disp;
 		
 	  #if   PROJECTION == 1
@@ -223,7 +236,7 @@ void trace_streamline()
 		// Emit vertex
 		gl_Position = MVP*vec4(px,1.0);
 		vertex_normal = vertex[0].normal;
-		vertex_color = get_color( float(i+1)/5.0 );
+		vertex_color = get_color( float(i+1)/float(numsteps) );
 			//vec4(abs(n),1.0);
 			//vec4(vec3(get_scalar(px)*8.0),1.0);
 		EmitVertex();		
@@ -252,8 +265,7 @@ void displace_triangle()
 		float diffuse = abs(dot(vertex[i].normal,L)); // dual sided
 		vec3 color = 
 		    0.5*vec3(0.3) +  // ambient
-			0.7*diffuse*vec3(1.0,1.0,0.5); // diffuse, yellow 
-		
+			0.7*diffuse*vec3(1.0,1.0,0.5); // diffuse, yellow		
 		
 		// Emit vertex
 		gl_Position   = MVP*vec4(x,1.0);
@@ -269,7 +281,7 @@ void displace_triangle()
 // Geometry shader entry point
 void main()
 {
-  #if   MODE==0
+  #if   MODE==0 || MODE==2
 	trace_streamline();
   #elif MODE==1
 	displace_triangle();

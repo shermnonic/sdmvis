@@ -1,11 +1,12 @@
 // slvis streamline - vertex shader
 #version 150
+#extension GL_ARB_explicit_attrib_location : enable
 
 uniform mat4 Modelview;
 uniform mat4 Projection;
 
-in vec3 Position;
-in vec3 Normal;
+layout(location=0) in vec3 Position;
+layout(location=1) in vec3 Normal;
 
 out VertexAttrib
 {

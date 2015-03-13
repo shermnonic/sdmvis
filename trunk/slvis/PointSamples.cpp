@@ -120,7 +120,13 @@ void PointSamples::render( unsigned shaderProgram )
 	{
 		// VAO (required for GS, see https://www.opengl.org/wiki_132/index.php/Vertex_Rendering)
 		glBindVertexArray( m_vao );
-		posAttrib = glGetAttribLocation( shaderProgram, "Position" );
+		// We define now fixed layout locations in the shader like this:
+		//   layout(location=0) in vec3 Position;
+		//   layout(location=1) in vec3 Normal;
+		// Previously we used automatic assignment and query:
+		//   posAttrib = glGetAttribLocation( shaderProgram, "Position" );
+		//   glEnableVertexAttribArray( posAttrib );
+		posAttrib = 0;
 		glEnableVertexAttribArray( posAttrib );
 		glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 		GL::CheckGLError("PointSamples::render() - VAO setup");
